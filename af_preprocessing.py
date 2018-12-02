@@ -39,6 +39,24 @@ class AF_data:
         tax_ws = tax_sheet.worksheet('iOS Store tax').get_all_values()[1:]
         self.country_taxes = {country: float(tax.replace(',', '.')) for country, tax in tax_ws}
         
+    def get_applovin_sitenames(self):
+        """Получаем данные для мэтчинга 'Site name' к 'Site ID' для сетки applovin_int."""
+
+        pass
+#        self.applovin_sitenames = pd.read_csv(SOME_PATH, usecols=['Platform', 'External App ID', 'Application']) \
+#                                .rename(columns={'External App ID': 'Site ID'}) \
+#                                .groupby(['Platform', 'Site ID']).Application.first()
+            
+    @staticmethod
+    def detect_UA(campaign):
+        """Извлекает фамилию маркетолога из названия кампании на Facebook."""
+        
+        res = [surname for surname in SURNAMES if surname in campaign]
+        if res:
+            return res[0]
+        else:
+            return 'Bidalgo AI'
+        
     def get_fb_data(self):
         """Получаем и преобразовываем дополнительные данные из Facebook Ads API"""
         
@@ -64,6 +82,7 @@ class AF_data:
             'spend': 'Cost Value'
         }, inplace=True)
         fb_data.data['Install Day'] = pd.to_datetime(fb_data.data['Install Day'])
+        fb_data.data['UA'] = fb_data.data['Campaign'].apply(self.detect_UA)
 
         # накидываем налог на spend, Campaign которых содержит строку 'bidalgo_'
         filt = fb_data.data['Campaign'].str.contains('bidalgo_')
@@ -75,8 +94,8 @@ class AF_data:
         
         # сохраняем лист сплитов, по которым будем мэтчить поле Cost Value
         self.matching_splits['Facebook Ads'] = [
-            ('Install Day', 'Campaign', 'Country Code'),
-            ('Install Day', 'Campaign')
+            ['Install Day', 'Campaign', 'Country Code'],
+            ['Install Day', 'Campaign']
         ]
         # coхраняем массив ретаргет кампаний
         retarget_campaigns = {item['campaign_name'] for item in fb_data.raw_data[FB_RETARGET_ACCOUNT]}
@@ -103,8 +122,8 @@ class AF_data:
         
         # сохраняем лист сплитов, по которым будем мэтчить поле Cost Value
         self.matching_splits['snapchat_int'] = [
-            ('Install Day', 'Campaign ID', 'Ad ID'),
-            ('Install Day', 'Campaign ID')
+            ['Install Day', 'Campaign ID', 'Ad ID'],
+            ['Install Day', 'Campaign ID']
         ]
 
     def get_httpool_data(self):
@@ -121,8 +140,8 @@ class AF_data:
         
         # сохраняем лист сплитов, по которым будем мэтчить поле Cost Value
         self.matching_splits['Twitter'] = [
-            ('Campaign', 'Install Day'),
-            ('Campaign', 'Install Week')
+            ['Campaign', 'Install Day'],
+            ['Campaign', 'Install Week']
         ]                
         retarget_campaigns = set(httpool_data.data[httpool_data.data['url'] == HPOOL_RETARGET_URL]['Campaign'])
         self.retarget_campaigns.update(retarget_campaigns)
@@ -136,7 +155,7 @@ class AF_data:
         Потом корректируем значения некоторых колонок в self.inapps."""
 
 #        inapps_d2d = *SQL request или подтягивать руками*
-        self.inapps = pd.concat([self.inapps, inapps_d2d], ignore_index=True)
+#        self.inapps = pd.concat([self.inapps, inapps_d2d], ignore_index=True)
     
         self.inapps[ID].fillna(self.inapps['AppsFlyer ID'], inplace=True)
 
@@ -158,6 +177,16 @@ class AF_data:
         
         self.installs['Install Day'] = self.installs['Install Time'].dt.floor('d')
         self.installs['Install Week'] = self.installs['Install Time'].dt.to_period('W')
+        
+        self.installs['OS Version'] = self.installs['OS Version'].str.extract('([0-9]*[.][0-9]*)').astype(np.float32)
+        
+        # Media-specific трансформации
+        
+        fb_idx = self.installs.index[self.installs['Media Source'] == 'Facebook Ads']
+        self.installs.loc[fb_idx, 'UA'] = self.installs.loc[fb_idx, 'Campaign'].apply(self.detect_UA)
+        self.installs.loc[fb_idx, 'Campaign'] = installs.loc[fb_idx, 'Campaign'].apply(lambda x: x.encode('ISO-8859-1').decode())
+        
+        self.installs['Campaign'].replace(self.httpool_renames, inplace=True)
         
         # вводим колонку с флагом того, является ли данный инсталл ретаргетовым (позже отметим где True)
         self.installs['retarget_event'] = False
@@ -266,7 +295,7 @@ class AF_data:
         inapps_from_for_repeat_idx = pd.DataFrame([prev_inapps_to, current_inst_time]).max()
         self.installs_dup_p.loc[repeat_idx, 'inapps_from'] = inapps_from_for_repeat_idx
         
-    def calculate_metrics_for_dup(self):
+    def calculate_metrics_for_dup_users(self):
         """Мэтчим платежи к повторным юзерам и считаем метрики:
          - gross - сумма платежей в USD
          - inapps_count - количество платежей
@@ -327,12 +356,12 @@ class AF_data:
     def match_inapps_dup(self, args):
         """Принимает в качестве аргументов лист из [ID, начало и конец платежного окна].
         Возвращает массив платежей (в USD).
-        Используется в методе self.calculate_metrics_for_dup."""
+        Используется в методе self.calculate_metrics_for_dup_users."""
 
         inapps = self.inapps_dup.loc[args[0], 'Event Revenue USD'][args[1]:args[2]]
         return inapps.values
         
-    def calculate_metrics_for_unq(self):
+    def calculate_metrics_for_unq_users(self):
         """Мэтчим платежи к уникальным юзерам и считаем метрики:
          - gross - сумма платежей в USD
          - inapps_count - количество платежей
@@ -388,7 +417,7 @@ class AF_data:
         # возвращаем ID из индекса обратно в колонку (для дальнейшей совместимости) 
         self.installs_unq_p.reset_index(inplace=True)
         
-    def merge_installs(self):
+    def merge_data(self):
         """Склеиваем все installs_ таблицы в единый датафрейм."""
         
         self.data = pd.concat([self.installs_dup_p, self.installs_dup_np,
@@ -396,6 +425,22 @@ class AF_data:
                               ignore_index=True, sort=True)
         
         del self.installs_dup_p, self.installs_dup_np, self.installs_unq_p, self.installs_unq_np
+        
+    def calc_clean_gross(self):
+        """Накидываем налоги на гросс по когортам."""
+        
+        self.data['tax_gross'] = self.data['App Name'].map(TAX_GROSS)
+        
+        for cohort in COHORTS:
+            if cohort is None:
+                gross_col = 'gross'
+                clean_gross_col = 'clean_gross'
+            else:
+                gross_col = f'gross_{cohort}'
+                clean_gross_col = f'clean_gross_{cohort}'    
+            self.data[clean_gross_col] = self.data[gross_col] * (1 - self.data.tax_country) * self.data.tax_gross
+            
+        self.data.drop(['tax_gross', 'tax_country'], 1, inplace=True)
         
     def fill_na_costs(self):
         """Заполняем отсутствующие косты (колонка 'Cost Value') значениями из self.additional_data.
@@ -416,6 +461,127 @@ class AF_data:
             self.match_costs(media)
     
     def match_costs(self, media):
-        """Заполняет пустые 'Cost Value' значениями из доп. данных."""
+        """Заполняет пустые 'Cost Value' значениями из self.additional_data."""
         
+        media_data = self.additional_data[media]
+        splits = self.matching_splits[media]
+        media_filt = self.data['Media Source'] == media
+        
+        for step, split in enumerate(splits):
+        
+            null_cost_filt = self.data['Cost Value'].isnull()
+            target_idx = self.data.index[media_filt & null_cost_filt]
+            
+            cost_sum = media_data.groupby(split)['Cost Value'].sum()
+            if step > 0:
+                cost_filled = self.data[media_filt].groupby(split)['Cost Value'].sum().fillna(0)
+                cost_sum = cost_sum - cost_filled
+                print(f'{media}, {split} cost_sum min: {cost_sum.min()}')
+                cost_sum = cost_sum.apply(lambda x: max(x, 0))
+            
+            installs_count = self.data.loc[target_idx].groupby(split).size()
+
+            cpi = cost_sum / installs_count
+            cpi.replace([0, np.inf], np.nan, inplace=True)
+            
+            target_slice = self.data.loc[target_idx].set_index(split)['Cost Value']
+            target_slice['Cost Value'] = cpi
+            self.data.loc[target_idx, 'Cost Value'] = target_slice['Cost Value'].values
+            
+            filled_share = self.data[media_filt]['Cost Value'].sum() / media_data['Cost Value'].sum()
+            print(f"Filled cost share for {media}: {filled_share} with {split}")
+            if filled_share >= 1:
+                break
+            
+    def vizualize_cost_sums(self, media, by, UA=None):
+        """Рисует график для отслеживания расхождений в костах между данными определённой Медиа
+        и главным датафреймом (метод ручной валидации качества смэтченных костов)."""
+        
+        cost_compar = pd.DataFrame()
+        
+        media_data = self.additional_data[media]
+        af_data = self.data[self.data['Media Source'] == media]
+        
+        if UA:
+            media_data = media_data[media_data['UA'] == UA]
+            af_data = af_data[af_data['UA'] == UA]
+        
+        cost_compar[media] = media_data.groupby(by)['Cost Value'].sum()
+        cost_compar['AppsFlyer'] = af_data.groupby(by)['Cost Value'].sum()
+
+        cost_compar.plot(figsize=(15,4), marker='.')
+
+        plt.suptitle('Cost sum comparison between 2 sources', fontsize=14, fontweight='bold')
+        plt.show()
+        
+    def add_sitenames(self):
+        """Заводим и заполняем колонку 'Site name'."""
+        
+        self.data['Site name'] = None
+        
+        medias_w_sn_idx = self.data.index[self.data['Media Source'].isin(MEDIAS_WITH_SITENAMES)]
+        self.data.loc[medias_w_sn_idx, 'Site name'] = self.data.loc[medias_w_sn_idx, 'Sub Param 1']
+        
+#        applovin_idx = self.data.index[self.data['Media Source'] == 'applovin_int']
+#        applovin_slice = self.data.loc[applovin_idx].set_index(['Platform', 'Site ID'])['Site name']
+#        applovin_slice['Site name'] = self.applovin_sitenames
+#        self.data.loc[applovin_idx, 'Site name'] = applovin_slice['Site name'].index
+
+        self.data['Site name'] = self.data['Site name'].str.lower()
+        self.data.drop('Sub Param 1', 1, inplace=True)
+        
+    def detect_whales(self):
+        """Определяем китов по сумме их платежей в разрезе 'App ID'-'Country Code' (для каждой когорты)."""
+        
+        by = ['App ID', 'Country Code']
+        self.data.set_index(by, inplace=True)
+        
+        for cohort in COHORTS:
+            
+            gross_col = f'gross_{cohort}'
+            group_quantiles = self.data.groupby(by)[gross_col].quantile(WHALE_QUANT)
+            self.data['whale_quant'] = group_quantiles
+            self.data[f'whale_{cohort}'] = ((self.data[gross_col] > self.data['whale_quant'])&
+                                            (self.data[gross_col] > WHALE_THRESHOLD))
+            self.data.drop('whale_quant', 1, inplace=True)
+        
+        self.data.reset_index(inplace=True)
+    
+    def load_to_db(self):
+        """Загружаем self.data в ClickHouse."""
+
+#        Roma's input required
         pass
+    
+    def extract_transform_load(self):
+        """Сделать всё, что сверху."""
+        
+        # extract additional data
+        self.get_taxes()
+        self.get_applovin_sitenames()
+        self.get_fb_data()
+        self.get_snap_data()
+        self.get_httpool_data()
+        
+        # transform & calculate
+        self.transform_inapps()
+        self.transform_installs()
+        self.separate_data()
+        self.detect_retarget_installs()
+        self.transform_retarget_installs()
+        self.calculate_inapp_dates_for_dup_users()
+        self.calculate_metrics_for_dup_users()
+        self.calculate_metrics_for_unq_users()
+        self.merge_data()
+        self.calc_clean_gross()
+        self.fill_na_costs()
+        self.add_sitenames()
+        self.detect_whales()
+        
+        # load
+        self.load_to_db()
+        
+        
+        
+        
+        

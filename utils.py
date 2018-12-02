@@ -33,3 +33,6 @@ MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Ads
 PLATS = ['ios', 'andr']
 BIDALGO_TAX_MULT = 1.04
 NULL_COST_MEDIAS = ['Facebook Ads', 'snapchat_int', 'Twitter']
+MEDIAS_WITH_SITENAMES = ['adcolony_int', 'ironsource_int', 'chartboosts2s_int']
+WHALE_QUANT = 0.99
+WHALE_THRESHOLD = 50

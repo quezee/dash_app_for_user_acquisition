@@ -7,7 +7,7 @@ from io import BytesIO
 
 from utils import USDRUB
 
-from api_google_sheets import GoogleSheet
+from additional_apis.api_google_sheets import GoogleSheet
 gs = GoogleSheet()
 
 URLs_DATA = [
