@@ -20,7 +20,7 @@ class FB_data:
 
     def __init__(self, account_ids=ACCOUNT_IDS, date_preset='last_90d', time_increment=1,
                  level='campaign', fields='campaign_name,spend', breakdowns='country',
-                 time_range=None):
+                 limit=6000, action_breakdowns=None, time_range=None):
         self.account_ids = account_ids
         self.raw_data = {}
         self.headers = {
@@ -30,7 +30,8 @@ class FB_data:
             'level': level,
             'fields': fields,
             'breakdowns': breakdowns,
-            'limit': 6000
+            'action_breakdowns': action_breakdowns,
+            'limit': limit
         }
         if time_range:
             time_range_formatted = '{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}'
