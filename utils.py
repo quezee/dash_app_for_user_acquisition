@@ -6,13 +6,18 @@ COHORTS = [None, 'month', 1, 3, 7, 14, 28, 60]
 APP_RENAMES = {
     'Last Day on Earth: Survival': 'Last Day on Earth',
     'Grim Soul: Survival': 'Grim Soul',
-    'Grim Soul: Dark Fantasy Survival': 'Grim Soul'
+    'Grim Soul: Dark Fantasy Survival': 'Grim Soul',
+    
+    'Forge of Glory': 'Forge of Glory',
+    'Westland Survival': 'Westland Survival',
+    'Jurassic Survival': 'Jurassic Survival',
 }
 TAX_GROSS = {
     'Last Day on Earth': 0.93,
     'Grim Soul': 0.93,
     'Forge of Glory': 0.93,
     'Westland Survival': 1,
+    'Jurassic Survival': 0.93
 }
 TAX_COST = 1.18
 TAX_OTHERS = 0.3
