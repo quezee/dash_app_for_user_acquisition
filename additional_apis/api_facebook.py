@@ -9,19 +9,23 @@ from itertools import chain
 with open('keys/api_keys.json') as f:
     MARKER = json.loads(f.read())['fb']
 
-ACCOUNT_IDS = ['784629615050482', '784629325050511', '169755003718782', '891211047725671']
-ACCOUNT_NAMES = ['LDoE | Kefir! | Android', 'LDoE | Kefir! | iOS',
-                 'Re-targeting LDoE | Kefir', 'Grim Souls | Kefir!']
+ACCOUNTS = {
+    '784629615050482': 'LDoE | Kefir! | Android',
+    '784629325050511': 'LDoE | Kefir! | iOS',
+    '169755003718782': 'Re-targeting LDoE | Kefir',
+    '891211047725671': 'Grim Souls | Kefir!',
+    '854774491369327': 'FOG | Kefir!'
+}
 FB_RETARGET_ACCOUNT = '169755003718782'
 URL_BASE = 'https://graph.facebook.com/v3.2/{}/insights'
 
 
 class FB_data:
 
-    def __init__(self, account_ids=ACCOUNT_IDS, date_preset='last_90d', time_increment=1,
+    def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
                  level='campaign', fields='campaign_name,spend', breakdowns='country',
                  limit=6000, action_breakdowns=None, time_range=None):
-        self.account_ids = account_ids
+        self.accounts = accounts
         self.raw_data = {}
         self.headers = {
             'access_token': MARKER,
@@ -72,10 +76,10 @@ class FB_data:
         self.data.loc[idx_rest, 'Platform'] = acc_rest.str.lower().apply(lambda x: [plat for plat in PLATS if plat in x][0])
             
     def get_data(self, fill_platform=True):
-        for i, account_id in enumerate(self.account_ids):
+        for account_id in self.accounts:
             self.get_raw_data(account_id)
             for row in self.raw_data[account_id]:
-                row['account_name'] = ACCOUNT_NAMES[i]
+                row['account_name'] = self.accounts[account_id]
         data = list(chain.from_iterable(self.raw_data.values()))
         self.data = pd.DataFrame.from_dict(data)
         if fill_platform:

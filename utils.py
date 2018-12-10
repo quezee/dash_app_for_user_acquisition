@@ -9,6 +9,7 @@ APP_RENAMES = {
     'Grim Soul: Dark Fantasy Survival': 'Grim Soul',
     
     'Forge of Glory': 'Forge of Glory',
+    'Westland Survival - Be a survivor in the Wild West': 'Westland Survival',
     'Westland Survival': 'Westland Survival',
     'Jurassic Survival': 'Jurassic Survival',
 }
@@ -23,7 +24,7 @@ TAX_COST = 1.18
 TAX_OTHERS = 0.3
 OBSERV_SPAN = 60
 DT_FMT = '%Y-%m-%d'
-SURNAMES = ['Zhorina', 'Bosov', 'Baranov', 'Groshev', 'Batyuk', 'Polyansky']
+SURNAMES = ['Zhorina', 'Bosov', 'Baranov', 'Groshev', 'Batyuk', 'Polyansky', 'Ananyev']
 USDRUB = {
     '2018-07': 60,
     '2018-08': 60,
