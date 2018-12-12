@@ -37,7 +37,7 @@ ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 
               'Deep_IOS_Test', 'Deeplink_test', 'deeplink_test']
 MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Adset', 'Ad',
                       'Ad ID', 'Site ID', 'Sub Site ID', 'Sub Param 1']
-PLATS = ['ios', 'andr']
+PLATS = ['ios', 'android']
 BIDALGO_TAX_MULT = 1.04
 NULL_COST_MEDIAS = ['Facebook Ads', 'snapchat_int', 'Twitter']
 MEDIAS_WITH_SITENAMES = ['adcolony_int', 'ironsource_int', 'chartboosts2s_int', 'vungle_int', 'liftoff_int']

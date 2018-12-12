@@ -41,7 +41,7 @@ class Snap_data:
             print('Timedelta exceeds 32 days, breaking the timespan down')
             self.from_to = []
             left_bound = start_time_dt
-            while left_bound < pd.Timestamp(end_time):
+            while left_bound < end_time_dt:
                 right_bound = left_bound + pd.Timedelta(32, unit='d')
                 right_bound = min(right_bound, end_time_dt)
                 self.from_to.append((left_bound.strftime('%Y-%m-%d'),

@@ -24,12 +24,11 @@ class FB_data:
 
     def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
                  level='campaign', fields='campaign_name,spend', breakdowns='country',
-                 limit=6000, action_breakdowns=None, time_range=None):
+                 limit=6000, action_breakdowns=None, time_range=None, time_range_step=None):
         self.accounts = accounts
         self.raw_data = {}
         self.headers = {
             'access_token': MARKER,
-            'date_preset': date_preset,
             'time_increment': time_increment,
             'level': level,
             'fields': fields,
@@ -38,10 +37,25 @@ class FB_data:
             'limit': limit
         }
         if time_range:
-            time_range_formatted = '{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}'
-            self.headers['time_range'] = time_range_formatted
+            self.time_range_list = []
 
-    def api_connect(self, url, headers=None):
+            if time_range_step:
+                start_time_dt, end_time_dt = pd.Timestamp(time_range[0]), pd.Timestamp(time_range[1])
+                left_bound = start_time_dt
+                while left_bound < end_time_dt:
+                    right_bound = left_bound + pd.Timedelta(time_range_step-1, unit='d')
+                    right_bound = min(right_bound, end_time_dt)
+                    start_time, end_time = left_bound.strftime('%Y-%m-%d'), right_bound.strftime('%Y-%m-%d')
+                    self.time_range_list.append('{"since":"' + start_time + '","until":"' + end_time + '"}')
+                    left_bound = right_bound + pd.Timedelta(1, unit='d')
+
+            else:
+                self.time_range_list.append('{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}')
+                
+        else:
+            self.headers['date_preset'] = date_preset
+
+    def connect(self, url, headers=None):
         connected = False
         while not connected:
             try:
@@ -54,18 +68,28 @@ class FB_data:
                 print(f'   {str(e)}\n   reconnecting...')
                 sleep(2)
         return req
+    
+    def connect_and_paginate(self, url, account_id):
+        req = self.connect(url, self.headers).json()
+        print(f'  First req len: {len(req["data"])}')
+        self.raw_data[account_id].extend(req['data'])
+        while 'next' in req['paging']:
+            next_url = req['paging']['next']
+            req = self.connect(next_url).json()
+            print(f'  Next req len: {len(req["data"])}')
+            self.raw_data[account_id].extend(req['data'])
 
     def get_raw_data(self, account_id):
         print(f'Account ID: {account_id}')
         url = URL_BASE.format(f'act_{account_id}')
-        req = self.api_connect(url, self.headers).json()
-        print(f'  First req len: {len(req["data"])}')
-        self.raw_data[account_id] = req['data']
-        while 'next' in req['paging']:
-            next_url = req['paging']['next']
-            req = self.api_connect(next_url).json()
-            print(f'  Next req len: {len(req["data"])}')
-            self.raw_data[account_id].extend(req['data'])
+        self.raw_data[account_id] = []
+        if 'date_preset' in self.headers:
+            self.connect_and_paginate(url, account_id)
+        else:
+            for time_range_str in self.time_range_list:
+                print(f' Time range: {time_range_str}')
+                self.headers['time_range'] = time_range_str
+                self.connect_and_paginate(url, account_id)            
 
     def fill_platform(self):
         for plat in PLATS:
