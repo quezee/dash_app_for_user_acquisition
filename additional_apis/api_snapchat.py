@@ -119,6 +119,7 @@ class Snap_data:
         self.data = pd.concat(data, ignore_index=True)
         self.data = pd.concat([self.data, json_normalize(self.data.stats)],
                               1, sort=True)
-        
+
+#        self.data.drop('stats', 1, inplace=True)        
         self.data['Install Day'] = pd.to_datetime(self.data.start_time.str.slice(0, 10))
         self.data['spend'] = self.data.spend / 1e6
