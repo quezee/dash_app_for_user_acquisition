@@ -94,8 +94,10 @@ class AF_data:
         
         # сохраняем лист сплитов, по которым будем мэтчить поле Cost Value
         self.matching_splits['Facebook Ads'] = [
+            ['Install Day', 'Campaign', 'Country Code', 'Platform'],
             ['Install Day', 'Campaign', 'Country Code'],
-            ['Install Day', 'Campaign']
+            ['Install Day', 'Campaign'],
+            ['Install Day', 'UA']
         ]
         # coхраняем массив ретаргет кампаний
         retarget_campaigns = {item['campaign_name'] for item in fb_data.raw_data[FB_RETARGET_ACCOUNT]}
