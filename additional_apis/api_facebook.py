@@ -73,11 +73,12 @@ class FB_data:
         req = self.connect(url, self.headers).json()
         print(f'  First req len: {len(req["data"])}')
         self.raw_data[account_id].extend(req['data'])
-        while 'next' in req['paging']:
-            next_url = req['paging']['next']
-            req = self.connect(next_url).json()
-            print(f'  Next req len: {len(req["data"])}')
-            self.raw_data[account_id].extend(req['data'])
+        if 'paging' in req:
+            while 'next' in req['paging']:
+                next_url = req['paging']['next']
+                req = self.connect(next_url).json()
+                print(f'  Next req len: {len(req["data"])}')
+                self.raw_data[account_id].extend(req['data'])
 
     def get_raw_data(self, account_id):
         print(f'Account ID: {account_id}')
