@@ -220,7 +220,8 @@ class AF_data:
         А именно, это установки, выполняющие одновременно 3 условия:
           1. первая установка у данного юзера произошла по неретаргетовой кампании
           2. установка является непервой у данного юзера
-          3. установка произошла по ретаргетовой кампании"""
+          3. установка произошла по ретаргетовой кампании
+          4. установка произошла не более чем 60 дней назад"""
         
         # получаем соответствие между юзер ID и флагом того, произошла ли его первая установка по ретаргет кампании 
         first_campaign_is_retarget = self.installs_dup.groupby(ID)['Is Retarget Campaign'].first()
@@ -232,6 +233,7 @@ class AF_data:
             (self.installs_dup[ID].isin(users_from_nonret))&     # 1.
             (self.installs_dup[ID].duplicated())&                # 2.
             (self.installs_dup['Is Retarget Campaign'] == True)  # 3.
+            (self.installs_dup['Days in game'] <= 60)            # 4.
         ].index.tolist()
 
         # отмечаем ретаргетовые инсталлы, индексы сохраняем в self
