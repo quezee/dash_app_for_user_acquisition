@@ -107,5 +107,5 @@ class FB_data:
                 row['account_name'] = self.accounts[account_id]
         data = list(chain.from_iterable(self.raw_data.values()))
         self.data = pd.DataFrame.from_dict(data)
-        if fill_platform:
+        if fill_platform and 'campaign_name' in self.data:
             self.fill_platform()
