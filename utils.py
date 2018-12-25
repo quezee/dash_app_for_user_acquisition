@@ -36,7 +36,7 @@ USDRUB = {
 ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 'None', 'Kefir',
               'Deep_IOS_Test', 'Deeplink_test', 'deeplink_test']
 MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Adset', 'Ad',
-                      'Ad ID', 'Site ID', 'Sub Site ID', 'Sub Param 1']
+                      'Ad ID', 'Ad Type', 'Site ID', 'Sub Site ID', 'Sub Param 1']
 PLATS = ['ios', 'android']
 BIDALGO_TAX_MULT = 1.04
 NULL_COST_MEDIAS = ['Facebook Ads', 'snapchat_int', 'Twitter']

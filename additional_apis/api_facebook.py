@@ -12,9 +12,11 @@ with open('keys/api_keys.json') as f:
 ACCOUNTS = {
     '784629615050482': 'LDoE | Kefir! | Android',
     '784629325050511': 'LDoE | Kefir! | iOS',
+    '360961977417250': 'Splitmetrics | Kefir!',
     '169755003718782': 'Re-targeting LDoE | Kefir',
     '891211047725671': 'Grim Souls | Kefir!',
-    '854774491369327': 'FOG | Kefir!'
+    '854774491369327': 'FOG | Kefir!',
+    '454612108322849': 'Helio Games Ads'
 }
 FB_RETARGET_ACCOUNT = '169755003718782'
 URL_BASE = 'https://graph.facebook.com/v3.2/{}/insights'
