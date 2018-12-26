@@ -143,7 +143,6 @@ class AF_data:
         # сохраняем лист сплитов, по которым будем мэтчить поле Cost Value
         self.matching_splits['Twitter'] = [
             ['Campaign', 'Install Day'],
-            ['Campaign', 'Install Week']
         ]                
         retarget_campaigns = set(httpool_data.data[httpool_data.data['url'] == HPOOL_RETARGET_URL]['Campaign'])
         self.retarget_campaigns.update(retarget_campaigns)

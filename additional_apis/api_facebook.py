@@ -10,9 +10,9 @@ with open('keys/api_keys.json') as f:
     MARKER = json.loads(f.read())['fb']
 
 ACCOUNTS = {
+    '769428786570565': 'Splitmetrics | Kefir!',
     '784629615050482': 'LDoE | Kefir! | Android',
     '784629325050511': 'LDoE | Kefir! | iOS',
-    '360961977417250': 'Splitmetrics | Kefir!',
     '169755003718782': 'Re-targeting LDoE | Kefir',
     '891211047725671': 'Grim Souls | Kefir!',
     '854774491369327': 'FOG | Kefir!',
