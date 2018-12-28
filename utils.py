@@ -43,3 +43,9 @@ NULL_COST_MEDIAS = ['Facebook Ads', 'snapchat_int', 'Twitter']
 MEDIAS_WITH_SITENAMES = ['adcolony_int', 'ironsource_int', 'chartboosts2s_int', 'vungle_int', 'liftoff_int']
 WHALE_QUANT = 0.99
 WHALE_THRESHOLD = 50
+
+def coh_to_col(metric, cohort):
+    if cohort:
+        return f'{metric}_{cohort}'
+    else:
+        return metric
