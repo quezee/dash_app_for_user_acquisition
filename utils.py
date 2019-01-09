@@ -20,7 +20,7 @@ TAX_GROSS = {
     'Westland Survival': 1,
     'Jurassic Survival': 0.93
 }
-TAX_COST = 1.18
+TAX_COST = 1.2
 TAX_OTHERS = 0.3
 OBSERV_SPAN = 60
 DT_FMT = '%Y-%m-%d'
@@ -31,7 +31,8 @@ USDRUB = {
     '2018-09': 67.5,
     '2018-10': 65.85,
     '2018-11': 66.36,
-    '2018-12': 66.36
+    '2018-12': 66.36,
+    '2019-01': 67.3
 }
 ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 'None', 'Kefir',
               'Deep_IOS_Test', 'Deeplink_test', 'deeplink_test']
