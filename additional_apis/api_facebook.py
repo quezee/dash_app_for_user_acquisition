@@ -13,6 +13,7 @@ ACCOUNTS = {
     '769428786570565': 'Splitmetrics | Kefir!',
     '784629615050482': 'LDoE | Kefir! | Android',
     '784629325050511': 'LDoE | Kefir! | iOS',
+    '784629761717134': 'APAC LDoE | Kefir!',
     '169755003718782': 'Re-targeting LDoE | Kefir',
     '891211047725671': 'Grim Souls | Kefir!',
     '854774491369327': 'FOG | Kefir!',
@@ -26,7 +27,7 @@ class FB_data:
 
     def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
                  level='campaign', fields='campaign_name,spend', breakdowns='country',
-                 limit=6000, action_breakdowns=None, time_range=None, time_range_step=None):
+                 limit=6000, action_breakdowns=None, time_range=None, time_range_step=None, time_ranges=None):
         self.accounts = accounts
         self.raw_data = {}
         self.headers = {
@@ -53,6 +54,11 @@ class FB_data:
 
             else:
                 self.time_range_list.append('{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}')
+                
+        elif time_ranges:
+            time_ranges_str = ['{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}' for time_range in time_ranges]
+            time_ranges_str = '[' + ','.join(time_ranges_str) + ']'
+            self.headers['time_ranges'] = time_ranges_str
                 
         else:
             self.headers['date_preset'] = date_preset
@@ -86,7 +92,7 @@ class FB_data:
         print(f'Account ID: {account_id}')
         url = URL_BASE.format(f'act_{account_id}')
         self.raw_data[account_id] = []
-        if 'date_preset' in self.headers:
+        if 'date_preset' in self.headers or 'time_ranges' in self.headers:
             self.connect_and_paginate(url, account_id)
         else:
             for time_range_str in self.time_range_list:

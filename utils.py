@@ -34,6 +34,7 @@ USDRUB = {
     '2018-12': 66.36,
     '2019-01': 67.3
 }
+USDEUR = 0.87
 ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 'None', 'Kefir',
               'Deep_IOS_Test', 'Deeplink_test', 'deeplink_test']
 MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Adset', 'Ad',
