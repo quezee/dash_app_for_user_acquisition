@@ -5,6 +5,7 @@ import json
 from utils import PLATS
 from time import sleep
 from itertools import chain
+from math import ceil
 
 with open('keys/api_keys.json') as f:
     MARKER = json.loads(f.read())['fb']
@@ -27,9 +28,12 @@ class FB_data:
 
     def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
                  level='campaign', fields='campaign_name,spend', breakdowns='country',
-                 limit=6000, action_breakdowns=None, time_range=None, time_range_step=None, time_ranges=None):
+                 limit=6000, action_breakdowns=None,
+                 time_range=None, time_range_step=None, time_ranges=None, time_ranges_step=None):
         self.accounts = accounts
         self.raw_data = {}
+        self.time_range_list = []
+        self.time_ranges_list = []
         self.headers = {
             'access_token': MARKER,
             'time_increment': time_increment,
@@ -40,7 +44,6 @@ class FB_data:
             'limit': limit
         }
         if time_range:
-            self.time_range_list = []
 
             if time_range_step:
                 start_time_dt, end_time_dt = pd.Timestamp(time_range[0]), pd.Timestamp(time_range[1])
@@ -54,11 +57,26 @@ class FB_data:
 
             else:
                 self.time_range_list.append('{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}')
-                
+          
+        
         elif time_ranges:
-            time_ranges_str = ['{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}' for time_range in time_ranges]
-            time_ranges_str = '[' + ','.join(time_ranges_str) + ']'
-            self.headers['time_ranges'] = time_ranges_str
+            
+            if time_ranges_step:
+                idx_start = 0
+                while idx_start < len(time_ranges):
+                    idx_end = idx_start + time_ranges_step
+                    time_ranges_slice = time_ranges[idx_start:idx_end]
+                    time_ranges_str = ['{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}'
+                                       for time_range in time_ranges_slice]
+                    time_ranges_str = '[' + ','.join(time_ranges_str) + ']'
+                    self.time_ranges_list.append(time_ranges_str)
+                    idx_start = idx_end
+                
+            else:
+                time_ranges_str = ['{"since":"' + time_range[0] + '","until":"' + time_range[1] + '"}' for time_range in time_ranges]
+                time_ranges_str = '[' + ','.join(time_ranges_str) + ']'
+                self.time_ranges_list.append(time_ranges_str)
+
                 
         else:
             self.headers['date_preset'] = date_preset
@@ -92,13 +110,20 @@ class FB_data:
         print(f'Account ID: {account_id}')
         url = URL_BASE.format(f'act_{account_id}')
         self.raw_data[account_id] = []
-        if 'date_preset' in self.headers or 'time_ranges' in self.headers:
-            self.connect_and_paginate(url, account_id)
-        else:
+        if self.time_range_list:
             for time_range_str in self.time_range_list:
                 print(f' Time range: {time_range_str}')
                 self.headers['time_range'] = time_range_str
-                self.connect_and_paginate(url, account_id)            
+                self.connect_and_paginate(url, account_id)
+                self.headers.pop('time_range')
+        elif self.time_ranges_list:
+            for time_ranges_str in self.time_ranges_list:
+                print(f' Time ranges: {time_ranges_str}')
+                self.headers['time_ranges'] = time_ranges_str
+                self.connect_and_paginate(url, account_id)
+                self.headers.pop('time_ranges')
+        else:
+            self.connect_and_paginate(url, account_id)
 
     def fill_platform(self):
         for plat in PLATS:
