@@ -7,7 +7,7 @@ APP_RENAMES = {
     'Last Day on Earth: Survival': 'Last Day on Earth',
     'Grim Soul: Survival': 'Grim Soul',
     'Grim Soul: Dark Fantasy Survival': 'Grim Soul',
-    
+    'Forge of Glory: Match3 MMORPG & Action Puzzle Game': 'Forge of Glory',
     'Forge of Glory': 'Forge of Glory',
     'Westland Survival - Be a survivor in the Wild West': 'Westland Survival',
     'Westland Survival': 'Westland Survival',
