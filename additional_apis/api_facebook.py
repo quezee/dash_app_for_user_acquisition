@@ -6,6 +6,7 @@ from utils import PLATS
 from time import sleep
 from itertools import chain
 from math import ceil
+import time
 
 with open('keys/api_keys.json') as f:
     MARKER = json.loads(f.read())['fb']
@@ -21,7 +22,7 @@ ACCOUNTS = {
     '454612108322849': 'Helio Games Ads'
 }
 FB_RETARGET_ACCOUNT = '169755003718782'
-URL_BASE = 'https://graph.facebook.com/v3.2/{}/insights'
+URL_BASE = 'https://graph.facebook.com/v3.2/{OBJECT_ID}/{ENDPOINT}'
 
 
 class FB_data:
@@ -34,7 +35,7 @@ class FB_data:
         self.raw_data = {}
         self.time_range_list = []
         self.time_ranges_list = []
-        self.headers = {
+        self.params = {
             'access_token': MARKER,
             'time_increment': time_increment,
             'level': level,
@@ -79,13 +80,13 @@ class FB_data:
 
                 
         else:
-            self.headers['date_preset'] = date_preset
+            self.params['date_preset'] = date_preset
 
-    def connect(self, url, headers=None):
+    def connect(self, url, params=None):
         connected = False
         while not connected:
             try:
-                req = requests.get(url, headers)
+                req = requests.get(url, params)
                 req_json = req.json()
                 if 'error' in req_json:
                     raise Exception(req_json['error']['message'])
@@ -95,35 +96,35 @@ class FB_data:
                 sleep(2)
         return req
     
-    def connect_and_paginate(self, url, account_id):
-        req = self.connect(url, self.headers).json()
+    def connect_and_paginate(self, url, object_id):
+        req = self.connect(url, self.params).json()
         print(f'  First req len: {len(req["data"])}')
-        self.raw_data[account_id].extend(req['data'])
+        self.raw_data[object_id].extend(req['data'])
         if 'paging' in req:
             while 'next' in req['paging']:
                 next_url = req['paging']['next']
                 req = self.connect(next_url).json()
                 print(f'  Next req len: {len(req["data"])}')
-                self.raw_data[account_id].extend(req['data'])
+                self.raw_data[object_id].extend(req['data'])
 
-    def get_raw_data(self, account_id):
-        print(f'Account ID: {account_id}')
-        url = URL_BASE.format(f'act_{account_id}')
-        self.raw_data[account_id] = []
+    def get_raw_data(self, object_id):
+        print(f'Account ID: {object_id}')
+        url = URL_BASE.format(OBJECT_ID=f'act_{object_id}', ENDPOINT='insights')
+        self.raw_data[object_id] = []
         if self.time_range_list:
             for time_range_str in self.time_range_list:
                 print(f' Time range: {time_range_str}')
-                self.headers['time_range'] = time_range_str
-                self.connect_and_paginate(url, account_id)
-                self.headers.pop('time_range')
+                self.params['time_range'] = time_range_str
+                self.connect_and_paginate(url, object_id)
+                self.params.pop('time_range')
         elif self.time_ranges_list:
             for time_ranges_str in self.time_ranges_list:
                 print(f' Time ranges: {time_ranges_str}')
-                self.headers['time_ranges'] = time_ranges_str
-                self.connect_and_paginate(url, account_id)
-                self.headers.pop('time_ranges')
+                self.params['time_ranges'] = time_ranges_str
+                self.connect_and_paginate(url, object_id)
+                self.params.pop('time_ranges')
         else:
-            self.connect_and_paginate(url, account_id)
+            self.connect_and_paginate(url, object_id)
 
     def fill_platform(self):
         for plat in PLATS:
@@ -134,11 +135,43 @@ class FB_data:
         self.data.loc[idx_rest, 'Platform'] = acc_rest.str.lower().apply(lambda x: [plat for plat in PLATS if plat in x][0])
             
     def get_data(self, fill_platform=True):
-        for account_id in self.accounts:
-            self.get_raw_data(account_id)
-            for row in self.raw_data[account_id]:
-                row['account_name'] = self.accounts[account_id]
+        for object_id in self.accounts:
+            self.get_raw_data(object_id)
+            for row in self.raw_data[object_id]:
+                row['account_name'] = self.accounts[object_id]
         data = list(chain.from_iterable(self.raw_data.values()))
         self.data = pd.DataFrame.from_dict(data)
         if fill_platform and 'campaign_name' in self.data:
             self.fill_platform()
+            
+            
+class FB_adset_meta(FB_data):
+    
+    def __init__(self, adset_ids, limit=6000,
+                 fields='start_time,end_time,optimization_goal,billing_event,bid_amount,daily_budget,targeting,status'):
+        
+        self.raw_data = []
+        self.adset_ids = adset_ids
+        self.params = {
+            'access_token': MARKER,
+            'fields': fields,
+            'limit': limit
+        }
+        
+    def get_raw_data(self, object_id):
+        print(f'Adset ID: {object_id}')
+        url = URL_BASE.format(OBJECT_ID=object_id, ENDPOINT='')
+        req = self.connect(url, self.params)
+        self.raw_data.append(req.json())
+    
+    def get_data(self):
+        for object_id in self.adset_ids:
+            self.get_raw_data(object_id)
+            time.sleep(2)
+        self.data = pd.DataFrame.from_dict(self.raw_data)
+        self.data.set_index('id', inplace=True)
+    
+    
+    
+    
+                 
