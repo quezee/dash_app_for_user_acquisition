@@ -6,7 +6,6 @@ from utils import PLATS
 from time import sleep
 from itertools import chain
 from math import ceil
-import time
 
 with open('keys/api_keys.json') as f:
     MARKER = json.loads(f.read())['fb']
@@ -94,6 +93,7 @@ class FB_data:
             except Exception as e:
                 print(f'   {str(e)}\n   reconnecting...')
                 sleep(2)
+        sleep(3)
         return req
     
     def connect_and_paginate(self, url, object_id):
@@ -147,8 +147,7 @@ class FB_data:
             
 class FB_adset_meta(FB_data):
     
-    def __init__(self, adset_ids, limit=6000,
-                 fields='start_time,end_time,optimization_goal,billing_event,bid_amount,daily_budget,targeting,status'):
+    def __init__(self, adset_ids, limit=6000, fields='start_time,end_time,optimization_goal,attribution_spec,billing_event,bid_amount,daily_budget,targeting,status,bid_strategy'):
         
         self.raw_data = []
         self.adset_ids = adset_ids
@@ -167,7 +166,6 @@ class FB_adset_meta(FB_data):
     def get_data(self):
         for object_id in self.adset_ids:
             self.get_raw_data(object_id)
-            time.sleep(2)
         self.data = pd.DataFrame.from_dict(self.raw_data)
         self.data.set_index('id', inplace=True)
     
