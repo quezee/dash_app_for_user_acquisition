@@ -16,11 +16,12 @@ ACCOUNTS = {
     '784629325050511': 'LDoE | Kefir! | iOS',
     '784629761717134': 'APAC LDoE | Kefir!',
     '169755003718782': 'Re-targeting LDoE | Kefir',
+    '850214015158708': 'Re-targeting Grim Soul | Kefir',
     '891211047725671': 'Grim Souls | Kefir!',
     '854774491369327': 'FOG | Kefir!',
     '454612108322849': 'Helio Games Ads'
 }
-FB_RETARGET_ACCOUNT = '169755003718782'
+FB_RETARGET_ACCOUNTS = ['169755003718782', '850214015158708']
 URL_BASE = 'https://graph.facebook.com/v3.2/{OBJECT_ID}/{ENDPOINT}'
 
 
