@@ -38,7 +38,7 @@ USDRUB = {
 USDEUR = 0.87
 ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 'None', 'Kefir',
               'Deep_IOS_Test', 'Deeplink_test', 'deeplink_test']
-MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Adset', 'Ad',
+MEDIA_RELATED_COLS = ['Media Source', 'Campaign', 'Channel', 'Campaign ID', 'Adset', 'Adset ID', 'Ad',
                       'Ad ID', 'Ad Type', 'Site ID', 'Sub Site ID', 'Sub Param 1']
 PLATS = ['ios', 'android']
 BIDALGO_TAX_MULT = 1.04
