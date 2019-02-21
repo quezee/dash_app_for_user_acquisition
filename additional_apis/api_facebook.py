@@ -28,7 +28,7 @@ URL_BASE = 'https://graph.facebook.com/v3.2/{OBJECT_ID}/{ENDPOINT}'
 class FB_data:
 
     def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
-                 level='adset', fields='adset_id,spend', breakdowns=None,
+                 level='ad', fields='campaign_name,ad_id,spend', breakdowns=None,
                  limit=6000, action_breakdowns=None,
                  time_range=None, time_range_step=None, time_ranges=None, time_ranges_step=None):
         self.accounts = accounts
