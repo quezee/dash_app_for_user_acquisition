@@ -128,12 +128,10 @@ class FB_data:
             self.connect_and_paginate(url, object_id)
 
     def fill_platform(self):
-        for plat in PLATS:
-            idx = self.data[self.data.campaign_name.str.lower().str.contains(plat)].index
-            self.data.loc[idx, 'Platform'] = plat
-        idx_rest = self.data[self.data.Platform.isnull()].index
-        acc_rest = self.data.loc[idx_rest, 'account_name']
-        self.data.loc[idx_rest, 'Platform'] = acc_rest.str.lower().apply(lambda x: [plat for plat in PLATS if plat in x][0])
+        self.data['Platform'] = self.data.campaign_name.str.lower().str.extract('(ios|android)', expand=False)
+        null_filt = self.data.Platform.isnull()
+        if null_filt.any():
+            self.data.loc[null_filt, 'Platform'] = self.data.loc[null_filt, 'account_name'].str.lower().str.extract('(ios|android)', expand=False)
             
     def get_data(self, fill_platform=True):
         for object_id in self.accounts:
