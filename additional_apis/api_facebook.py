@@ -94,7 +94,7 @@ class FB_data:
             except Exception as e:
                 print(f'   {str(e)}\n   reconnecting...')
                 sleep(2)
-        sleep(3)
+        sleep(2)
         return req
     
     def connect_and_paginate(self, url, object_id):

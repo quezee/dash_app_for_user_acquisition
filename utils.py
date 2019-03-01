@@ -33,7 +33,8 @@ USDRUB = {
     '2018-11': 66.36,
     '2018-12': 66.36,
     '2019-01': 67.3,
-    '2019-02': 66.51
+    '2019-02': 65.81,
+    '2019-03': 65.81
 }
 USDEUR = 0.87
 ODD_MEDIAS = ['AppsFlyer_Test', 'appsflyer_sdk_test_int', 'YouTube', 'AF_test', 'None', 'Kefir',
