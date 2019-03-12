@@ -33,7 +33,7 @@ code={CODE}'
 
 class Snap_data:
     
-    def __init__(self, start_time, end_time, fields='spend', campaign_ids=None):
+    def __init__(self, start_time, end_time, fields='spend', breakdown='ad', campaign_ids=None):
         
         end_time_dt, start_time_dt = pd.Timestamp(end_time), pd.Timestamp(start_time)
         timedelta = (end_time_dt - start_time_dt).days
@@ -54,7 +54,7 @@ class Snap_data:
         self.auth_header = None
         self.url_base = 'https://adsapi.snapchat.com/v1/{}/{}/stats?'
         self.params = {
-            'breakdown': 'ad',
+            'breakdown': breakdown,
             'fields': fields,
             'granularity': 'DAY'
         }
