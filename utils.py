@@ -17,10 +17,16 @@ TAX_GROSS = {
     'Last Day on Earth': 0.93,
     'Grim Soul': 0.93,
     'Forge of Glory': 0.93,
-    'Westland Survival': 1,
-    'Jurassic Survival': 0.93
+    'Jurassic Survival': 0.93,
+    'Westland Survival': 1
 }
-TAX_COST = 1.2
+TAX_COST = {
+    'Last Day on Earth': 1.2,
+    'Grim Soul': 1.2,
+    'Forge of Glory': 1.2,
+    'Jurassic Survival': 1.2,
+    'Westland Survival': 1
+}
 TAX_OTHERS = 0.3
 OBSERV_SPAN = 60
 DT_FMT = '%Y-%m-%d'
