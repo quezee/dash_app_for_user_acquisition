@@ -148,7 +148,7 @@ class FB_data:
             
 class FB_adset_meta(FB_data):
     
-    def __init__(self, adset_ids, limit=6000, fields='start_time,end_time,optimization_goal,attribution_spec,billing_event,bid_amount,daily_budget,targeting,status,bid_strategy'):
+    def __init__(self, adset_ids, limit=6000, fields='start_time,end_time,optimization_goal,attribution_spec,billing_event,bid_amount,daily_budget,targeting,status,bid_strategy,ads'):
         
         self.raw_data = []
         self.endpoint = ''
