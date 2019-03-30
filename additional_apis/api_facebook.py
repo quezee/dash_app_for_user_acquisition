@@ -93,20 +93,20 @@ class FB_data:
                     raise Exception(req_json['error']['message'])
                 connected = True
             except Exception as e:
-                print(f'   {str(e)}\n   reconnecting...')
+                print('   {}\n   reconnecting...'.format(str(e)))
                 sleep(2)
         sleep(2)
         return req
 
     def connect_and_paginate(self, url, object_id):
         req = self.connect(url, self.params).json()
-        print(f'  First req len: {len(req["data"])}')
+        print('  First req len: {}'.format(len(req["data"])))
         self.raw_data[object_id].extend(req['data'])
         if 'paging' in req:
             while 'next' in req['paging']:
                 next_url = req['paging']['next']
                 req = self.connect(next_url).json()
-                print(f'  Next req len: {len(req["data"])}')
+                print('  Next req len: {}'.format(len(req["data"])))
                 self.raw_data[object_id].extend(req['data'])
 
     def get_raw_data(self, object_id):
@@ -115,13 +115,13 @@ class FB_data:
         self.raw_data[object_id] = []
         if self.time_range_list:
             for time_range_str in self.time_range_list:
-                print(f' Time range: {time_range_str}')
+                print(' Time range: {}'.format(time_range_str))
                 self.params['time_range'] = time_range_str
                 self.connect_and_paginate(url, object_id)
                 self.params.pop('time_range')
         elif self.time_ranges_list:
             for time_ranges_str in self.time_ranges_list:
-                print(f' Time ranges: {time_ranges_str}')
+                print(' Time ranges: {}'.format(time_ranges_str))
                 self.params['time_ranges'] = time_ranges_str
                 self.connect_and_paginate(url, object_id)
                 self.params.pop('time_ranges')
@@ -136,7 +136,7 @@ class FB_data:
             
     def get_data(self, fill_platform=True):
         for account_id in self.accounts:
-            object_id = f'act_{account_id}'
+            object_id = 'act_{}'.format(account_id)
             self.get_raw_data(object_id)
             for row in self.raw_data[object_id]:
                 row['account_name'] = self.accounts[account_id]
@@ -192,7 +192,7 @@ class FB_audience_meta(FB_data):
 class FB_reach_estimate(FB_data):
     
     def __init__(self, targeting_spec, limit=6000):    
-        self.object_id = f'act_{np.random.choice(list(ACCOUNTS.keys()))}'
+        self.object_id = 'act_{}'.format(np.random.choice(list(ACCOUNTS.keys())))
         self.endpoint = 'reachestimate'
         self.params = {
             'targeting_spec': targeting_spec,
