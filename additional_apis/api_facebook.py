@@ -29,7 +29,7 @@ class FB_data:
 
     def __init__(self, accounts=ACCOUNTS, date_preset='last_90d', time_increment=1,
                  level='ad', fields='campaign_name,ad_id,spend', breakdowns=None,
-                 limit=6000, action_breakdowns=None,
+                 limit=6000, filtering=None, action_breakdowns=None,
                  time_range=None, time_range_step=None, time_ranges=None, time_ranges_step=None):
         self.accounts = accounts
         self.raw_data = {}
@@ -43,7 +43,8 @@ class FB_data:
             'fields': fields,
             'breakdowns': breakdowns,
             'action_breakdowns': action_breakdowns,
-            'limit': limit
+            'limit': limit,
+            'filtering': filtering
         }
         if time_range:
 
