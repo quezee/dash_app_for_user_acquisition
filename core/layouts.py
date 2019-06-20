@@ -23,6 +23,16 @@ LAYOUTS = {
         html.Div([
             html.Label('App Name', style={'font-weight': 'bold', 'font-size': 20}),
             dcc.Dropdown(options=[{'label': name, 'value': name} for name in config.APP_NAMES])
+        ], style={'width': '20%', 'marginTop': 20}),
+
+        html.Div([
+            html.Label('Platform', style={'font-weight': 'bold', 'font-size': 20}),
+            dcc.Dropdown(options=[{'label': plat, 'value': plat} for plat in config.PLATFORMS])
+        ], style={'width': '20%', 'marginTop': 20}),
+
+        html.Div([
+            html.Label('Media Source', style={'font-weight': 'bold', 'font-size': 20}),
+            dcc.Dropdown(id='filter_media')
         ], style={'width': '20%', 'marginTop': 20})
 
     ],
