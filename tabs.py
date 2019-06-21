@@ -12,31 +12,33 @@ today = datetime.datetime.today().date()
 from config import Config
 config = Config()
 
-LAYOUTS = {
-    'Main': [
+TABS = [
+    dcc.Tab(label='Main', children=[
         html.Div([html.Label('Attribution date range')],
                  style={'width': '20%', 'marginTop': 20, 'font-weight': 'bold', 'font-size': 20}),
-        html.Div([dcc.DatePickerRange(start_date=today - datetime.timedelta(30), end_date=today,
+        html.Div([dcc.DatePickerRange(id='main/date_range',
+                                      start_date=today - datetime.timedelta(30), end_date=today,
                                       max_date_allowed=today, display_format='MMM DD, Y')],
                  style={'marginTop': 5}),
 
         html.Div([
             html.Label('App Name', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(options=[{'label': name, 'value': name} for name in config.APP_NAMES])
+            dcc.Dropdown(id='main/app',
+                         options=[{'label': name, 'value': name} for name in config.APP_NAMES])
         ], style={'width': '20%', 'marginTop': 20}),
 
         html.Div([
             html.Label('Platform', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(options=[{'label': plat, 'value': plat} for plat in config.PLATFORMS])
+            dcc.Dropdown(id='main/plat',
+                         options=[{'label': plat, 'value': plat} for plat in config.PLATFORMS])
         ], style={'width': '20%', 'marginTop': 20}),
 
         html.Div([
             html.Label('Media Source', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(id='filter_media')
+            dcc.Dropdown(id='main/media')
         ], style={'width': '20%', 'marginTop': 20})
-
-    ],
-    'Dynamics': [
+    ]),
+    dcc.Tab(label='Dynamics', children=[
         html.H3('Dynamics')
-    ]
-}
+    ])
+]
