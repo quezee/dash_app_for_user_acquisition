@@ -2,41 +2,54 @@ import dash
 import dash_core_components as dcc
 from dash.dependencies import Input, Output, State
 import dash_html_components as html
-# import dash_table_experiments as dt
+import dash_table
 # import plotly.graph_objs as go
 # from plotly import tools
 
-import datetime
-today = datetime.datetime.today().date()
+
 
 from config import Config
 config = Config()
 
 TABS = [
     dcc.Tab(label='Main', children=[
-        html.Div([html.Label('Attribution date range')],
-                 style={'width': '20%', 'marginTop': 20, 'font-weight': 'bold', 'font-size': 20}),
-        html.Div([dcc.DatePickerRange(id='main/date_range',
-                                      start_date=today - datetime.timedelta(30), end_date=today,
-                                      max_date_allowed=today, display_format='MMM DD, Y')],
-                 style={'marginTop': 5}),
+        html.Div([html.Label('Performance by breakdown', style={'font-weight': 'bold', 'font-size': 25})],
+                 style={'marginTop': 20}),
 
         html.Div([
-            html.Label('App Name', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(id='main/app',
-                         options=[{'label': name, 'value': name} for name in config.APP_NAMES])
-        ], style={'width': '20%', 'marginTop': 20}),
+            html.Label('Days cohort', style={'font-weight': 'bold', 'font-size': 17}),
+            html.Br(),
+            dcc.RadioItems(id='main/cohort', value='7', style={'font-size': 17},
+                           options=[{'label': coh, 'value': coh} for coh in config.COHORTS])
+        ], style={'marginTop': 20}),
 
         html.Div([
-            html.Label('Platform', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(id='main/plat',
-                         options=[{'label': plat, 'value': plat} for plat in config.PLATFORMS])
-        ], style={'width': '20%', 'marginTop': 20}),
+            html.Label('Retarget effect', style={'font-weight': 'bold', 'font-size': 17}),
+            html.Br(),
+            dcc.RadioItems(id='main/rtg', value='Exclude', style={'font-size': 17},
+                           options=[{'label': 'Exclude', 'value': 'Exclude'},
+                                    {'label': 'Include', 'value': 'Include'}])
+        ], style={'marginTop': 20}),
 
         html.Div([
-            html.Label('Media Source', style={'font-weight': 'bold', 'font-size': 20}),
-            dcc.Dropdown(id='main/media')
-        ], style={'width': '20%', 'marginTop': 20})
+            html.Label('Others threshold', style={'font-weight': 'bold', 'font-size': 17}),
+            html.Br(),
+            dcc.Input(id='main/others', value=100, type='number')
+        ], style={'marginTop': 20}),
+
+        html.Div([
+            html.Label('Breakdown', style={'font-weight': 'bold', 'font-size': 17}),
+            html.Br(),
+            dcc.Dropdown(id='main/break', value='Campaign', multi=True,
+                         options=[{'label': by, 'value': by} for by in config.GROUPERS])
+        ], style={'width': '35%', 'marginTop': 20}),
+
+        html.Div([dash_table.DataTable(id='main/table')]),
+
+
+
+
+
     ]),
     dcc.Tab(label='Dynamics', children=[
         html.H3('Dynamics')
