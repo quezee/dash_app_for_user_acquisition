@@ -4,6 +4,7 @@ from dash.dependencies import Input, Output, State
 import dash_html_components as html
 # import plotly.graph_objs as go
 # from plotly import tools
+import datetime
 
 from config import Config
 config = Config()
@@ -13,16 +14,19 @@ ch = CHHandler(config.DB_HOST, config.DB_PORT)
 from app import app
 
 
+def preproc_dates(start_date, end_date):
+    return repr(start_date + ' 00:00:00'), repr(end_date + ' 23:59:59')
+
+
 @app.callback(Output('media', 'options'),
               [Input('date_range', 'start_date'), Input('date_range', 'end_date'),
                Input('app', 'value'), Input('plat', 'value')])
 def set_media_options(start_date, end_date,
                       app, plat):
-    start_date = start_date + ' 00:00:00'
-    end_date = end_date + ' 23:59:59'
+    start_date, end_date = preproc_dates(start_date, end_date)
     query = '''
     SELECT DISTINCT MediaSource FROM appsflyer.installs
-    WHERE AttributedTouchTime BETWEEN {} AND {}'''.format(repr(start_date), repr(end_date))
+    WHERE AttributedTouchTime BETWEEN {} AND {}'''.format(start_date, end_date)
     if app:
         query += ' AND AppName = {}'.format(repr(app))
     if plat:
@@ -35,20 +39,21 @@ def set_media_options(start_date, end_date,
               [Input('main_submit', 'n_clicks')],
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
                State('app', 'value'), State('plat', 'value'), State('media', 'value'),
-               State('main_groupby', 'value')])
+               State('main_cohort', 'value'), State('main_groupby', 'value')])
 def update_main_table(n_clicks, start_date, end_date,
-                      app, plat, media, groupby):
+                      app, plat, media, cohort, groupby):
     if not groupby:
         return [], []
-    start_date = start_date + ' 00:00:00'
-    end_date = end_date + ' 23:59:59'
     if isinstance(groupby, list):
         groupby = ', '.join(groupby)
+    start_date, end_date = preproc_dates(start_date, end_date)
+    dt_border = ''
+
     query = '''
-    SELECT {}, COUNT(AppsFlyerID) as Installs
+    SELECT {}, COUNT(AppsFlyerID) as Installs, SUM(CostValue) as Cost
     FROM appsflyer.installs
     WHERE AttributedTouchTime BETWEEN {} AND {}
-    '''.format(groupby, repr(start_date), repr(end_date))
+    '''.format(groupby, start_date, end_date)
     if app:
         query += ' AND AppName = {}'.format(repr(app))
     if plat:
