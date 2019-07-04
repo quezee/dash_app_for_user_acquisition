@@ -24,6 +24,15 @@ TABS = [
         ], style={'marginTop': 20}),
 
         html.Div([
+            html.Label('Campaign Type', style={'font-weight': 'bold', 'font-size': 17}),
+            html.Br(),
+            dcc.RadioItems(id='main_camptype', value='All', style={'font-size': 17},
+                           options=[{'label': 'All', 'value': 'All'},
+                                    {'label': 'UA', 'value': '0'},
+                                    {'label': 'RTG', 'value': '1'}])
+        ], style={'marginTop': 20}),
+
+        html.Div([
             html.Label('Retarget effect', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
             dcc.RadioItems(id='main_rtg', value='Exclude', style={'font-size': 17},
@@ -41,11 +50,15 @@ TABS = [
             html.Label('Group by', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
             dcc.Dropdown(id='main_groupby', multi=True,
-                         options=[{'label': by, 'value': by} for by in config.GROUPERS])
+                         options=[{'label': by, 'value': by} for by in config.GROUPERS['All']])
         ], style={'width': '35%', 'marginTop': 20}),
 
         html.Button(id='main_submit', n_clicks=0, children='Submit'),
-        dash_table.DataTable(id='main_table')
+        dash_table.DataTable(id='main_table', style_data={'whiteSpace': 'normal'},
+                             filtering=True, sorting=True,
+                             css=[{'selector': '.dash-cell div.dash-cell-value',
+                                   'rule': 'display: inline; white-space: inherit;'
+                                           'overflow: inherit; text-overflow: inherit;'}])
 
 
     ]),
