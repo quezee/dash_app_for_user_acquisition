@@ -38,6 +38,18 @@ def set_media_options(dt_start, dt_end,
     return data
 
 
+@app.callback(Output('main_groupby', 'options'),
+              [Input('media', 'value')])
+def set_groupby_options(media):
+    if not media:
+        opts = config.GROUPERS['Special']
+    elif media in config.SPECIAL_MEDIAS:
+        opts = config.GROUPERS[media]
+    else:
+        opts = config.GROUPERS['All']
+    return [{'label': opt, 'value': opt} for opt in opts]
+
+
 @app.callback([Output("main_table", "data"), Output("main_table", "columns")],
               [Input('main_submit', 'n_clicks')],
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
@@ -60,16 +72,25 @@ def update_main_table(n_clicks, dt_start, dt_end, app,
     FROM appsflyer.installs
     WHERE EventName = 'install' AND AttributedTouchTime BETWEEN {} AND {}
     '''.format(groupby, dt_start, dt_end)
+    subq_installs = '''
+    SELECT {}, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed
+    FROM __table__
+    WHERE Date BETWEEN {} AND {}
+    '''.format(groupby, dt_start, dt_end)
     if app:
         q_installs += ' AND AppName = {}'.format(repr(app))
+        subq_installs += ' AND AppName = {}'.format(repr(app))
     if plat:
         q_installs += ' AND Platform = {}'.format(repr(plat))
+        subq_installs += ' AND Platform = {}'.format(repr(plat))
     if media:
         q_installs += ' AND MediaSource = {}'.format(repr(media))
     if cohort != 'None':
         q_installs += ' AND InstallTime < {}'.format(dt_border)
+        subq_installs += ' AND Date < {}'.format(dt_border)
     if camptype != 'All':
         q_installs += ' AND IsRetCampaign = {}'.format(camptype)
+        subq_installs += ' AND IsRetCampaign = {}'.format(camptype)
     q_installs += ' GROUP BY {}'.format(groupby)
 
     q_inapps = '''
@@ -77,20 +98,31 @@ def update_main_table(n_clicks, dt_start, dt_end, app,
     FROM appsflyer.inapps
     WHERE AttributedTouchTime BETWEEN {} AND {}
     '''.format(groupby, dt_start, dt_end)
+    subq_inapps = '''
+    SELECT af_receipt_id
+    FROM appsflyer.inapps
+    WHERE AttributedTouchTime BETWEEN {} AND {}
+    AND IsPrimaryAttribution == 0 AND IsRetargeting == 0
+    '''.format(dt_start, dt_end)
     if app:
         q_inapps += ' AND AppName = {}'.format(repr(app))
+        subq_inapps += ' AND AppName = {}'.format(repr(app))
     if plat:
         q_inapps += ' AND Platform = {}'.format(repr(plat))
+        subq_inapps += ' AND Platform = {}'.format(repr(plat))
     if media:
         q_inapps += ' AND MediaSource = {}'.format(repr(media))
+        subq_inapps += ' AND MediaSource = {}'.format(repr(media))
     if cohort != 'None':
         q_inapps += ' AND InstallTime < {} AND DaysDiff <= {}'.format(dt_border, cohort)
+        subq_inapps += ' AND InstallTime < {} AND DaysDiff <= {}'.format(dt_border, cohort)
     if camptype != 'All':
         q_inapps += ' AND IsRetCampaign = {}'.format(camptype)
+        subq_inapps += ' AND IsRetCampaign = {}'.format(camptype)
     if rtg == 'Exclude':
         q_inapps += ' AND IsPrimaryAttribution = 1'
     elif rtg == 'Include':
-        q_inapps += ' AND IsRetargeting = 0'
+        q_inapps += ' AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)'.format(subq_inapps)
     q_inapps += ' GROUP BY {}'.format(groupby)
 
     query = '''
@@ -108,6 +140,16 @@ def update_main_table(n_clicks, dt_start, dt_end, app,
     ({})
     USING {}
     '''.format(groupby, q_installs, q_inapps, groupby)
+
+    if not media: # media in config.SPECIAL_MEDIAS
+        for source in config.SPECIAL_MEDIAS:
+            join = subq_installs.replace('__table__', config.MediaToTable[source])
+            query += '''
+            ALL FULL JOIN
+            ({})
+            USING {}
+            '''.format(join, groupby)
+
 
     print(query)
 

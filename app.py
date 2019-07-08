@@ -47,7 +47,6 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", value='Main', children=TABS),
 ])
 
-
 from callbacks import *
 
 if __name__ == '__main__':

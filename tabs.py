@@ -26,7 +26,7 @@ TABS = [
         html.Div([
             html.Label('Campaign Type', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
-            dcc.RadioItems(id='main_camptype', value='All', style={'font-size': 17},
+            dcc.RadioItems(id='main_camptype', value='0', style={'font-size': 17},
                            options=[{'label': 'All', 'value': 'All'},
                                     {'label': 'UA', 'value': '0'},
                                     {'label': 'RTG', 'value': '1'}])
@@ -49,8 +49,7 @@ TABS = [
         html.Div([
             html.Label('Group by', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
-            dcc.Dropdown(id='main_groupby', multi=True,
-                         options=[{'label': by, 'value': by} for by in config.GROUPERS['All']])
+            dcc.Dropdown(id='main_groupby', multi=True)
         ], style={'width': '35%', 'marginTop': 20}),
 
         html.Button(id='main_submit', n_clicks=0, children='Submit'),
