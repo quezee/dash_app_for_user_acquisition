@@ -6,8 +6,6 @@ import dash_html_components as html
 # from plotly import tools
 import datetime
 
-from config import Config
-config = Config()
 from utils import *
 ch = CHHandler(config.DB_HOST, config.DB_PORT)
 
@@ -49,8 +47,8 @@ def set_groupby_options(media):
               [Input('main_submit', 'n_clicks')],
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
                State('app', 'value'), State('plat', 'value'), State('media', 'value'),
-               State('main_cohort', 'value'), State('main_camptype', 'value'),
-               State('main_rtg', 'value'), State('main_groupby', 'value')])
+               State('cohort', 'value'), State('camptype', 'value'),
+               State('rtg', 'value'), State('main_groupby', 'value')])
 def update_main_table(n_clicks, dt_start, dt_end, app,
                       plat, media, cohort, camptype, rtg, groupby):
     if not groupby:
@@ -61,22 +59,7 @@ def update_main_table(n_clicks, dt_start, dt_end, app,
     constructor = QueryConstructor(dt_start, dt_end, app, plat,
                                    media, cohort, camptype, rtg, groupby)
 
-    installs_query = constructor.installs_query()
-
-    if (not media) | (media in config.SPECIAL_MEDIAS):
-        select = '''
-        {}, Installs, (Cost + MediaCost) as Cost, (CostTaxed + MediaCostTaxed) as CostTaxed
-        '''.format(groupby)
-
-        if not media:
-            for media_source in config.SPECIAL_MEDIAS:
-                media_query = constructor.media_query(media_source)
-                installs_query = constructor.join(installs_query, media_query, select)
-
-        elif media in config.SPECIAL_MEDIAS:
-            media_query = constructor.media_query(media)
-            installs_query = constructor.join(installs_query, media_query, select)
-
+    installs_query = constructor.combined_installs_query()
     inapps_query = constructor.inapps_query()
 
     select = '''
@@ -87,7 +70,6 @@ def update_main_table(n_clicks, dt_start, dt_end, app,
         ROUND(100*GrossClean/CostTaxed, 1) as ROI
     '''.format(groupby)
     resulting_query = constructor.join(installs_query, inapps_query, select)
-
     print(resulting_query)
 
     data, cols = ch.simple_query(resulting_query, True)

@@ -31,7 +31,7 @@ def preproc_dt(dt):
 
 class QueryConstructor:
     def __init__(self, dt_start, dt_end, app, plat,
-                 media, cohort, camptype, rtg, groupby):
+                 media, cohort, camptype, rtg, whales_excl, groupby):
         self.dt_start, self.dt_end = preproc_dt_range(dt_start, dt_end)
         self.app = app
         self.plat = plat
@@ -40,83 +40,132 @@ class QueryConstructor:
         self.camptype = camptype
         self.rtg = rtg
         self.groupby = groupby
+        self.whales_excl = whales_excl
         if cohort != 'None':
             today = datetime.datetime.utcnow().date()
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
 
+        self.filt_global = ''
+        if app:
+            self.filt_global += ' AND AppName = {}'.format(repr(app))
+        if plat:
+            self.filt_global += ' AND Platform = {}'.format(repr(plat))
+        if camptype != 'All':
+            self.filt_global += ' AND IsRetCampaign = {}'.format(camptype)
+
     def installs_query(self):
-        query = '''
-        SELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed
-        FROM appsflyer.installs
-        WHERE EventName = 'install' AND AttributedTouchTime BETWEEN {} AND {}
-        '''.format(self.groupby, self.dt_start, self.dt_end)
-        if self.app:
-            query += ' AND AppName = {}'.format(repr(self.app))
-        if self.plat:
-            query += ' AND Platform = {}'.format(repr(self.plat))
+        query = \
+        '\nSELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed' \
+        '\nFROM appsflyer.installs' \
+        '\nWHERE EventName = "install" AND AttributedTouchTime BETWEEN {} AND {}\n' \
+        .format(self.groupby, self.dt_start, self.dt_end) \
+        + self.filt_global
+
         if self.media:
             query += ' AND MediaSource = {}'.format(repr(self.media))
         if self.cohort != 'None':
             query += ' AND InstallTime < {}'.format(self.dt_border)
-        if self.camptype != 'All':
-            query += ' AND IsRetCampaign = {}'.format(self.camptype)
-        query += ' GROUP BY {}'.format(self.groupby)
+
+        query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
     def media_query(self, media_source):
         table = config.MediaToTable[media_source]
         media_col = '{} as MediaSource, '.format(repr(media_source)) if 'MediaSource' in self.groupby else ''
-        query = '''
-        SELECT {}, {}SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed
-        FROM {}
-        WHERE Date BETWEEN {} AND {}
-        '''.format(self.groupby, media_col, table, self.dt_start, self.dt_end)
-        if self.app:
-            query += ' AND AppName = {}'.format(repr(self.app))
-        if self.plat:
-            query += ' AND Platform = {}'.format(repr(self.plat))
+        query = \
+        '\nSELECT {}, {}SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed' \
+        '\nFROM {}' \
+        '\nWHERE Date BETWEEN {} AND {}\n' \
+        .format(self.groupby, media_col, table, self.dt_start, self.dt_end) \
+        + self.filt_global
+
         if self.cohort != 'None':
             query += ' AND Date < {}'.format(self.dt_border)
-        if self.camptype != 'All':
-            query += ' AND IsRetCampaign = {}'.format(self.camptype)
-        query += ' GROUP BY {}'.format(self.groupby)
+
+        query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
+    def combined_installs_query(self):
+        installs_query = self.installs_query()
+
+        if (not self.media) | (self.media in config.SPECIAL_MEDIAS):
+            select = \
+            '{}, Installs, (Cost + MediaCost) as Cost, (CostTaxed + MediaCostTaxed) as CostTaxed' \
+            .format(self.groupby)
+
+            if not self.media:
+                for media_source in config.SPECIAL_MEDIAS:
+                    media_query = self.media_query(media_source)
+                    installs_query = self.join(installs_query, media_query, select)
+
+            elif self.media in config.SPECIAL_MEDIAS:
+                media_query = self.media_query(self.media)
+                installs_query = self.join(installs_query, media_query, select)
+
+        return installs_query
+
     def inapps_query(self):
-        query = '''
-        SELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross, SUM(EventRevenueUSDTax) as GrossClean
-        FROM appsflyer.inapps
-        WHERE AttributedTouchTime BETWEEN {} AND {}
-        '''.format(self.groupby, self.dt_start, self.dt_end)
-        subquery = '''
-        SELECT af_receipt_id
-        FROM appsflyer.inapps
-        WHERE AttributedTouchTime BETWEEN {} AND {}
-        AND IsPrimaryAttribution == 0 AND IsRetargeting == 0
-        '''.format(self.dt_start, self.dt_end)
-        if self.app:
-            query += ' AND AppName = {}'.format(repr(self.app))
-            subquery += ' AND AppName = {}'.format(repr(self.app))
-        if self.plat:
-            query += ' AND Platform = {}'.format(repr(self.plat))
-            subquery += ' AND Platform = {}'.format(repr(self.plat))
+        query = \
+        '\nSELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
+        '\nSUM(EventRevenueUSDTax) as GrossClean' \
+        '\nFROM appsflyer.inapps' \
+        '\nWHERE EventName = "af_purchase" AND AttributedTouchTime BETWEEN {} AND {}\n' \
+        .format(self.groupby, self.dt_start, self.dt_end) \
+        + self.filt_global
+
         if self.media:
             query += ' AND MediaSource = {}'.format(repr(self.media))
-            subquery += ' AND MediaSource = {}'.format(repr(self.media))
         if self.cohort != 'None':
             query += ' AND InstallTime < {} AND DaysDiff <= {}'.format(self.dt_border, self.cohort)
-            subquery += ' AND InstallTime < {} AND DaysDiff <= {}'.format(self.dt_border, self.cohort)
-        if self.camptype != 'All':
-            query += ' AND IsRetCampaign = {}'.format(self.camptype)
-            subquery += ' AND IsRetCampaign = {}'.format(self.camptype)
         if self.rtg == 'Exclude':
             query += ' AND IsPrimaryAttribution = 1'
         elif self.rtg == 'Include':
-            query += ' AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)'.format(subquery)
-        query += ' GROUP BY {}'.format(self.groupby)
+            duplicate_inapps = self.duplicate_inapps_query()
+            query += '\n AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)\n'.format(duplicate_inapps)
+        if self.whales_excl:
+            whales = self.whale_query(query)
+            query += ' AND AppsFlyerID NOT IN ({})'.format(whales)
+
+        query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
-    def join(self, query1, query2, select='*', join_type='ALL LEFT JOIN'):
+    def duplicate_inapps_query(self):
+        query = '''
+        SELECT af_receipt_id
+        FROM appsflyer.inapps
+        WHERE EventName = 'af_purchase' AND AttributedTouchTime BETWEEN {} AND {}
+        AND IsPrimaryAttribution == 0 AND IsRetargeting == 0
+        '''.format(self.dt_start, self.dt_end) \
+           + self.filt_global
+
+        if self.media:
+            query += ' AND MediaSource = {}'.format(repr(self.media))
+        if self.cohort != 'None':
+            query += ' AND InstallTime < {} AND DaysDiff <= {}'.format(self.dt_border, self.cohort)
+
+        return query
+
+    def whale_query(self, inapps_query):
+        threshold = config.WHALE_THRESHOLDS[self.cohort]
+        replace_what = \
+        '{}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
+        '\nSUM(EventRevenueUSDTax) as GrossClean' \
+        .format(self.groupby)
+        replace_with = 'AppsFlyerID, SUM(EventRevenueUSD) as Gross'
+        inapps_query = inapps_query.replace(replace_what, replace_with) + \
+        '\nGROUP BY AppsFlyerID' + \
+        'HAVING Gross > {}' \
+        .format(threshold)
+
+        query = \
+        '\nSELECT AppsFlyerID' \
+        '\nFROM' \
+        '({})' \
+        .format(inapps_query)
+
+        return query
+
+    def join(self, query1, query2, select='*', join_type='ALL FULL JOIN'):
         query = '''
         SELECT {}
         FROM ({})
@@ -125,6 +174,7 @@ class QueryConstructor:
         USING {}
         '''.format(select, query1, join_type, query2, self.groupby)
         return query
+
 
 
 
