@@ -6,6 +6,7 @@ import dash_html_components as html
 from config import Config
 config = Config()
 
+import logging
 import datetime
 today = datetime.datetime.today().date()
 
@@ -22,7 +23,8 @@ app.layout = html.Div([
         html.Br(),
         dcc.DatePickerRange(id='date_range',
                             start_date=today - datetime.timedelta(30), end_date=today,
-                            max_date_allowed=today, display_format='MMM DD, Y'),
+                            max_date_allowed=today + datetime.timedelta(1),
+                            display_format='MMM DD, Y'),
     ], style={'marginTop': 5}),
 
     html.Div([
@@ -70,6 +72,14 @@ app.layout = html.Div([
                                 {'label': 'Include', 'value': 'Include'}])
     ], style={'width': '300px', 'display': 'inline-block'}),
 
+    html.Div([
+        html.Label('Whales', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
+        html.Br(),
+        dcc.RadioItems(id='whales', value='Include', style={'font-size': 17},
+                       options=[{'label': 'Exclude', 'value': 'Exclude'},
+                                {'label': 'Include', 'value': 'Include'}])
+    ], style={'width': '300px', 'display': 'inline-block'}),
+
 
     dcc.Tabs(id="tabs", value='Main', children=TABS),
 ])
@@ -78,4 +88,9 @@ app.layout = html.Div([
 from callbacks import *
 
 if __name__ == '__main__':
+    logging.basicConfig(filename=config.LOGPATH, level=logging.DEBUG)
+    logging.info('_________________Started_________________')
+
     app.run_server(debug=True)
+
+    logging.info('_________________Finished_________________')

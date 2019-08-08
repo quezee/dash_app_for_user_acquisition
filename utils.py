@@ -1,13 +1,17 @@
 from clickhouse_driver import Client
+import logging
 import datetime
+import textwrap
 from config import Config
 config = Config()
+
 
 class CHHandler:
     def __init__(self, host, port):
         self.conn = Client(host, port)
 
     def simple_query(self, query, column_types=False):
+        logging.debug('____________________QUERY____________________')
         response = self.conn.execute(query, with_column_types=column_types, settings={'max_execution_time': 3600})
         if column_types:
             data = [dict(zip([col[0] for col in response[1]], row)) for row in response[0]]
@@ -31,7 +35,7 @@ def preproc_dt(dt):
 
 class QueryConstructor:
     def __init__(self, dt_start, dt_end, app, plat,
-                 media, cohort, camptype, rtg, whales_excl, groupby):
+                 media, cohort, camptype, rtg, whales, groupby):
         self.dt_start, self.dt_end = preproc_dt_range(dt_start, dt_end)
         self.app = app
         self.plat = plat
@@ -40,7 +44,7 @@ class QueryConstructor:
         self.camptype = camptype
         self.rtg = rtg
         self.groupby = groupby
-        self.whales_excl = whales_excl
+        self.whales = whales
         if cohort != 'None':
             today = datetime.datetime.utcnow().date()
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
@@ -53,11 +57,15 @@ class QueryConstructor:
         if camptype != 'All':
             self.filt_global += ' AND IsRetCampaign = {}'.format(camptype)
 
+    @staticmethod
+    def indent(query):
+        return textwrap.indent(query, '    ')
+
     def installs_query(self):
         query = \
         '\nSELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed' \
         '\nFROM appsflyer.installs' \
-        '\nWHERE EventName = "install" AND AttributedTouchTime BETWEEN {} AND {}\n' \
+        "\nWHERE EventName = 'install' AND AttributedTouchTime BETWEEN {} AND {}\n" \
         .format(self.groupby, self.dt_start, self.dt_end) \
         + self.filt_global
 
@@ -104,12 +112,12 @@ class QueryConstructor:
 
         return installs_query
 
-    def inapps_query(self):
+    def payments_query(self):
         query = \
         '\nSELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
         '\nSUM(EventRevenueUSDTax) as GrossClean' \
-        '\nFROM appsflyer.inapps' \
-        '\nWHERE EventName = "af_purchase" AND AttributedTouchTime BETWEEN {} AND {}\n' \
+        '\nFROM appsflyer.payments' \
+        '\nWHERE AttributedTouchTime BETWEEN {} AND {}\n' \
         .format(self.groupby, self.dt_start, self.dt_end) \
         + self.filt_global
 
@@ -120,22 +128,22 @@ class QueryConstructor:
         if self.rtg == 'Exclude':
             query += ' AND IsPrimaryAttribution = 1'
         elif self.rtg == 'Include':
-            duplicate_inapps = self.duplicate_inapps_query()
-            query += '\n AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)\n'.format(duplicate_inapps)
-        if self.whales_excl:
+            duplicate_payments = self.duplicate_payments_query()
+            query += '\n AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)\n'.format(duplicate_payments)
+        if self.whales == 'Exclude':
             whales = self.whale_query(query)
             query += ' AND AppsFlyerID NOT IN ({})'.format(whales)
 
         query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
-    def duplicate_inapps_query(self):
-        query = '''
-        SELECT af_receipt_id
-        FROM appsflyer.inapps
-        WHERE EventName = 'af_purchase' AND AttributedTouchTime BETWEEN {} AND {}
-        AND IsPrimaryAttribution == 0 AND IsRetargeting == 0
-        '''.format(self.dt_start, self.dt_end) \
+    def duplicate_payments_query(self):
+        query = \
+        '\nSELECT af_receipt_id' \
+        '\nFROM appsflyer.payments' \
+        '\nWHERE AttributedTouchTime BETWEEN {} AND {}' \
+        '\n AND IsPrimaryAttribution == 0\n' \
+        .format(self.dt_start, self.dt_end) \
            + self.filt_global
 
         if self.media:
@@ -145,55 +153,54 @@ class QueryConstructor:
 
         return query
 
-    def whale_query(self, inapps_query):
+    def whale_query(self, payments_query):
         threshold = config.WHALE_THRESHOLDS[self.cohort]
         replace_what = \
         '{}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
         '\nSUM(EventRevenueUSDTax) as GrossClean' \
         .format(self.groupby)
         replace_with = 'AppsFlyerID, SUM(EventRevenueUSD) as Gross'
-        inapps_query = inapps_query.replace(replace_what, replace_with) + \
-        '\nGROUP BY AppsFlyerID' + \
-        'HAVING Gross > {}' \
+        payments_query = payments_query.replace(replace_what, replace_with) + \
+        '\nGROUP BY AppsFlyerID' \
+        '\nHAVING Gross > {}' \
         .format(threshold)
 
         query = \
         '\nSELECT AppsFlyerID' \
         '\nFROM' \
-        '({})' \
-        .format(inapps_query)
+        '({})\n' \
+        .format(payments_query)
 
         return query
 
     def join(self, query1, query2, select='*', join_type='ALL FULL JOIN'):
-        query = '''
-        SELECT {}
-        FROM ({})
-        {}
-        ({})
-        USING {}
-        '''.format(select, query1, join_type, query2, self.groupby)
+        query = \
+        '\nSELECT {}' \
+        '\nFROM ({})' \
+        '\n{} ({})' \
+        '\nUSING {}' \
+        .format(select, self.indent(query1), join_type, self.indent(query2), self.groupby)
         return query
 
 
 
 
-if __name__ == '__main__':
-
-    start_date = '2019-06-01 00:00:00'
-    end_date = '2019-07-01 23:59:59'
-    app = "Forge of Glory"
-    plat = 'ios'
-
-    query = '''
-    SELECT DISTINCT MediaSource FROM appsflyer.installs
-    WHERE AttributedTouchTime BETWEEN {} AND {}
-    AND AppName = {} AND Platform = {}
-    '''.format(repr(start_date), repr(end_date), repr(app), repr(plat))
-
-    from config import Config
-    config = Config()
-    ch = CHHandler(config.DB_HOST, config.DB_PORT)
-
-    s = ch.simple_query(query, True)
-    # p = ch.pandas_query(query)
+# if __name__ == '__main__':
+#
+#     start_date = '2019-06-01 00:00:00'
+#     end_date = '2019-07-01 23:59:59'
+#     app = "Forge of Glory"
+#     plat = 'ios'
+#
+#     query = '''
+#     SELECT DISTINCT MediaSource FROM appsflyer.installs
+#     WHERE AttributedTouchTime BETWEEN {} AND {}
+#     AND AppName = {} AND Platform = {}
+#     '''.format(repr(start_date), repr(end_date), repr(app), repr(plat))
+#
+#     from config import Config
+#     config = Config()
+#     ch = CHHandler(config.DB_HOST, config.DB_PORT)
+#
+#     s = ch.simple_query(query, True)
+#     # p = ch.pandas_query(query)

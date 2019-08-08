@@ -20,9 +20,11 @@ from app import app
 def set_media_options(dt_start, dt_end,
                       app, plat):
     dt_start, dt_end = preproc_dt_range(dt_start, dt_end)
-    query = '''
-    SELECT DISTINCT MediaSource FROM appsflyer.installs
-    WHERE AttributedTouchTime BETWEEN {} AND {}'''.format(dt_start, dt_end)
+    query = \
+    '\nSELECT DISTINCT MediaSource FROM appsflyer.installs' \
+    '\nWHERE AttributedTouchTime BETWEEN {} AND {}' \
+    "\n AND MediaSource != ''" \
+    .format(dt_start, dt_end)
     if app:
         query += ' AND AppName = {}'.format(repr(app))
     if plat:
@@ -47,30 +49,29 @@ def set_groupby_options(media):
               [Input('main_submit', 'n_clicks')],
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
                State('app', 'value'), State('plat', 'value'), State('media', 'value'),
-               State('cohort', 'value'), State('camptype', 'value'),
-               State('rtg', 'value'), State('main_groupby', 'value')])
-def update_main_table(n_clicks, dt_start, dt_end, app,
-                      plat, media, cohort, camptype, rtg, groupby):
+               State('cohort', 'value'), State('camptype', 'value'), State('rtg', 'value'),
+               State('whales', 'value'), State('main_groupby', 'value')])
+def update_main_table(n_clicks, dt_start, dt_end, app, plat,
+                      media, cohort, camptype, rtg, whales, groupby):
     if not groupby:
         return [], []
     if isinstance(groupby, list):
         groupby = ', '.join(groupby)
 
     constructor = QueryConstructor(dt_start, dt_end, app, plat,
-                                   media, cohort, camptype, rtg, groupby)
+                                   media, cohort, camptype, rtg, whales, groupby)
 
     installs_query = constructor.combined_installs_query()
-    inapps_query = constructor.inapps_query()
+    payments_query = constructor.payments_query()
 
-    select = '''
-        {},
-        ROUND(Cost, 1) as Cost, ROUND(CostTaxed, 1) as CostTaxed, ROUND(Cost/Installs, 2) as CPI,
-        Installs, Payers, ROUND(100*Payers/Installs, 1) as Paying, ROUND(Gross, 1) as Gross,
-        ROUND(GrossClean, 1) as GrossClean,
-        ROUND(100*GrossClean/CostTaxed, 1) as ROI
-    '''.format(groupby)
-    resulting_query = constructor.join(installs_query, inapps_query, select)
-    print(resulting_query)
+    select =  \
+    '\n{},' \
+    '\nROUND(Cost, 1) as Cost, ROUND(CostTaxed, 1) as CostTaxed, ROUND(Cost/Installs, 2) as CPI,' \
+    '\nInstalls, Payers, ROUND(100*Payers/Installs, 1) as Paying, ROUND(Gross, 1) as Gross,' \
+    '\nROUND(GrossClean, 1) as GrossClean,' \
+    '\nROUND(100*GrossClean/CostTaxed, 1) as ROI' \
+    .format(groupby)
+    resulting_query = constructor.join(installs_query, payments_query, select)
 
     data, cols = ch.simple_query(resulting_query, True)
     return data, cols
