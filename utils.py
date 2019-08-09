@@ -34,10 +34,10 @@ def preproc_dt(dt):
 
 
 class QueryConstructor:
-    def __init__(self, dt_start, dt_end, app, plat,
+    def __init__(self, dt_start, dt_end, app_name, plat,
                  media, cohort, camptype, rtg, whales, groupby):
         self.dt_start, self.dt_end = preproc_dt_range(dt_start, dt_end)
-        self.app = app
+        self.app_name = app_name
         self.plat = plat
         self.media = media
         self.cohort = cohort
@@ -50,8 +50,8 @@ class QueryConstructor:
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
 
         self.filt_global = ''
-        if app:
-            self.filt_global += ' AND AppName = {}'.format(repr(app))
+        if app_name:
+            self.filt_global += ' AND AppName = {}'.format(repr(app_name))
         if plat:
             self.filt_global += ' AND Platform = {}'.format(repr(plat))
         if camptype != 'All':
@@ -129,10 +129,11 @@ class QueryConstructor:
             query += ' AND IsPrimaryAttribution = 1'
         elif self.rtg == 'Include':
             duplicate_payments = self.duplicate_payments_query()
-            query += '\n AND NOT (af_receipt_id IN ({}) AND IsPrimaryAttribution = 1)\n'.format(duplicate_payments)
+            query += '\n AND NOT (af_receipt_id IN ({}\n) AND IsPrimaryAttribution = 1)\n' \
+                        .format(self.indent(duplicate_payments))
         if self.whales == 'Exclude':
             whales = self.whale_query(query)
-            query += ' AND AppsFlyerID NOT IN ({})'.format(whales)
+            query += ' AND AppsFlyerID NOT IN ({}\n)'.format(self.indent(whales))
 
         query += '\nGROUP BY {}'.format(self.groupby)
         return query
@@ -142,10 +143,13 @@ class QueryConstructor:
         '\nSELECT af_receipt_id' \
         '\nFROM appsflyer.payments' \
         '\nWHERE AttributedTouchTime BETWEEN {} AND {}' \
-        '\n AND IsPrimaryAttribution == 0\n' \
-        .format(self.dt_start, self.dt_end) \
-           + self.filt_global
+        '\n AND IsPrimaryAttribution == 0' \
+        .format(self.dt_start, self.dt_end)
 
+        if self.app_name:
+            query += ' AND AppName = {}'.format(repr(self.app_name))
+        if self.plat:
+            query += ' AND Platform = {}'.format(repr(self.plat))
         if self.media:
             query += ' AND MediaSource = {}'.format(repr(self.media))
         if self.cohort != 'None':
@@ -167,9 +171,8 @@ class QueryConstructor:
 
         query = \
         '\nSELECT AppsFlyerID' \
-        '\nFROM' \
-        '({})\n' \
-        .format(payments_query)
+        '\nFROM ({})' \
+        .format(self.indent(payments_query))
 
         return query
 

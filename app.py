@@ -30,7 +30,7 @@ app.layout = html.Div([
     html.Div([
         html.Label('App Name', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
-        dcc.Dropdown(id='app',
+        dcc.Dropdown(id='app_name',
                      options=[{'label': name, 'value': name} for name in config.APP_NAMES])
     ], style={'marginTop': 20, 'width': '300px', 'display': 'inline-block'}),
 

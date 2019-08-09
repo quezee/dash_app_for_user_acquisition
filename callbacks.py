@@ -16,17 +16,17 @@ from app import app
 
 @app.callback(Output('media', 'options'),
               [Input('date_range', 'start_date'), Input('date_range', 'end_date'),
-               Input('app', 'value'), Input('plat', 'value')])
+               Input('app_name', 'value'), Input('plat', 'value')])
 def set_media_options(dt_start, dt_end,
-                      app, plat):
+                      app_name, plat):
     dt_start, dt_end = preproc_dt_range(dt_start, dt_end)
     query = \
     '\nSELECT DISTINCT MediaSource FROM appsflyer.installs' \
     '\nWHERE AttributedTouchTime BETWEEN {} AND {}' \
     "\n AND MediaSource != ''" \
     .format(dt_start, dt_end)
-    if app:
-        query += ' AND AppName = {}'.format(repr(app))
+    if app_name:
+        query += ' AND AppName = {}'.format(repr(app_name))
     if plat:
         query += ' AND Platform = {}'.format(repr(plat))
     data = ch.simple_query(query)
@@ -48,17 +48,17 @@ def set_groupby_options(media):
 @app.callback([Output("main_table", "data"), Output("main_table", "columns")],
               [Input('main_submit', 'n_clicks')],
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
-               State('app', 'value'), State('plat', 'value'), State('media', 'value'),
+               State('app_name', 'value'), State('plat', 'value'), State('media', 'value'),
                State('cohort', 'value'), State('camptype', 'value'), State('rtg', 'value'),
                State('whales', 'value'), State('main_groupby', 'value')])
-def update_main_table(n_clicks, dt_start, dt_end, app, plat,
+def update_main_table(n_clicks, dt_start, dt_end, app_name, plat,
                       media, cohort, camptype, rtg, whales, groupby):
     if not groupby:
         return [], []
     if isinstance(groupby, list):
         groupby = ', '.join(groupby)
 
-    constructor = QueryConstructor(dt_start, dt_end, app, plat,
+    constructor = QueryConstructor(dt_start, dt_end, app_name, plat,
                                    media, cohort, camptype, rtg, whales, groupby)
 
     installs_query = constructor.combined_installs_query()
