@@ -34,8 +34,8 @@ def preproc_dt(dt):
 
 
 class QueryConstructor:
-    def __init__(self, dt_start, dt_end, app_name, plat,
-                 media, cohort, camptype, rtg, whales, groupby):
+    def __init__(self, dt_start, dt_end, app_name, plat, media,
+                 cohort, camptype, rtg, whales, dup_payments, groupby):
         self.dt_start, self.dt_end = preproc_dt_range(dt_start, dt_end)
         self.app_name = app_name
         self.plat = plat
@@ -43,8 +43,9 @@ class QueryConstructor:
         self.cohort = cohort
         self.camptype = camptype
         self.rtg = rtg
-        self.groupby = groupby
         self.whales = whales
+        self.dup_payments = dup_payments
+        self.groupby = groupby
         if cohort != 'None':
             today = datetime.datetime.utcnow().date()
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
@@ -128,9 +129,9 @@ class QueryConstructor:
         if self.rtg == 'Exclude':
             query += ' AND IsPrimaryAttribution = 1'
         elif self.rtg == 'Include':
-            duplicate_payments = self.duplicate_payments_query()
+            overlap_payments = self.overlap_payments_query()
             query += '\n AND NOT (af_receipt_id IN ({}\n) AND IsPrimaryAttribution = 1)\n' \
-                        .format(self.indent(duplicate_payments))
+                        .format(self.indent(overlap_payments))
         if self.whales == 'Exclude':
             whales = self.whale_query(query)
             query += ' AND AppsFlyerID NOT IN ({}\n)'.format(self.indent(whales))
@@ -138,7 +139,7 @@ class QueryConstructor:
         query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
-    def duplicate_payments_query(self):
+    def overlap_payments_query(self):
         query = \
         '\nSELECT af_receipt_id' \
         '\nFROM appsflyer.payments' \

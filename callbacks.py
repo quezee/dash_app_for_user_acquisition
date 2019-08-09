@@ -50,16 +50,16 @@ def set_groupby_options(media):
               [State('date_range', 'start_date'), State('date_range', 'end_date'),
                State('app_name', 'value'), State('plat', 'value'), State('media', 'value'),
                State('cohort', 'value'), State('camptype', 'value'), State('rtg', 'value'),
-               State('whales', 'value'), State('main_groupby', 'value')])
-def update_main_table(n_clicks, dt_start, dt_end, app_name, plat,
-                      media, cohort, camptype, rtg, whales, groupby):
+               State('whales', 'value'), State('dup_payments', 'value'), State('main_groupby', 'value')])
+def update_main_table(n_clicks, dt_start, dt_end, app_name, plat, media,
+                      cohort, camptype, rtg, whales, dup_payments, groupby):
     if not groupby:
         return [], []
     if isinstance(groupby, list):
         groupby = ', '.join(groupby)
 
-    constructor = QueryConstructor(dt_start, dt_end, app_name, plat,
-                                   media, cohort, camptype, rtg, whales, groupby)
+    constructor = QueryConstructor(dt_start, dt_end, app_name, plat, media,
+                                   cohort, camptype, rtg, whales, dup_payments, groupby)
 
     installs_query = constructor.combined_installs_query()
     payments_query = constructor.payments_query()

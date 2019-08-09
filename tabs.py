@@ -22,7 +22,7 @@ TABS = [
 
         html.Button(id='main_submit', n_clicks=0, children='Submit'),
         dash_table.DataTable(id='main_table', style_data={'whiteSpace': 'normal'},
-                             filter_action="native", sort_action="native",
+                             filter_action="native", sort_action="native", page_size=40,
                              css=[{'selector': '.dash-cell div.dash-cell-value',
                                    'rule': 'display: inline; white-space: inherit;'
                                            'overflow: inherit; text-overflow: inherit;'}])

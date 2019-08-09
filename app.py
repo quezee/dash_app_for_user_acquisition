@@ -80,6 +80,14 @@ app.layout = html.Div([
                                 {'label': 'Include', 'value': 'Include'}])
     ], style={'width': '300px', 'display': 'inline-block'}),
 
+    html.Div([
+        html.Label('Duplicate payments', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
+        html.Br(),
+        dcc.RadioItems(id='dup_payments', value='Leave', style={'font-size': 17},
+                       options=[{'label': 'Leave', 'value': 'Leave'},
+                                {'label': 'Remove', 'value': 'Remove'}])
+    ], style={'width': '300px', 'display': 'inline-block'}),
+
 
     dcc.Tabs(id="tabs", value='Main', children=TABS),
 ])
@@ -88,9 +96,8 @@ app.layout = html.Div([
 from callbacks import *
 
 if __name__ == '__main__':
+
     logging.basicConfig(filename=config.LOGPATH, level=logging.DEBUG)
     logging.info('_________________Started_________________')
 
     app.run_server(debug=True)
-
-    logging.info('_________________Finished_________________')
