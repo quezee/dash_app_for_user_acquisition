@@ -115,8 +115,7 @@ class QueryConstructor:
 
     def payments_query(self):
         query = \
-        '\nSELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
-        '\nSUM(EventRevenueUSDTax) as GrossClean' \
+        '\nSELECT {}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id' \
         '\nFROM appsflyer.payments' \
         '\nWHERE AttributedTouchTime BETWEEN {} AND {}\n' \
         .format(self.groupby, self.dt_start, self.dt_end) \
@@ -132,12 +131,20 @@ class QueryConstructor:
             overlap_payments = self.overlap_payments_query()
             query += '\n AND NOT (af_receipt_id IN ({}\n) AND IsPrimaryAttribution = 1)\n' \
                         .format(self.indent(overlap_payments))
+        if self.dup_payments == 'Remove':
+            query += '\nLIMIT 1 BY af_receipt_id'
         if self.whales == 'Exclude':
             whales = self.whale_query(query)
             query += ' AND AppsFlyerID NOT IN ({}\n)'.format(self.indent(whales))
 
-        query += '\nGROUP BY {}'.format(self.groupby)
-        return query
+        agg_query = \
+        '\nSELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
+        '\nSUM(EventRevenueUSDTax) as GrossClean' \
+        '\nFROM ({}\n)' \
+        '\nGROUP BY {}' \
+        .format(self.groupby, self.indent(query), self.groupby)
+
+        return agg_query
 
     def overlap_payments_query(self):
         query = \
@@ -161,8 +168,8 @@ class QueryConstructor:
     def whale_query(self, payments_query):
         threshold = config.WHALE_THRESHOLDS[self.cohort]
         replace_what = \
-        '{}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
-        '\nSUM(EventRevenueUSDTax) as GrossClean' \
+        '\n{}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id' \
+        '\nFROM appsflyer.payments' \
         .format(self.groupby)
         replace_with = 'AppsFlyerID, SUM(EventRevenueUSD) as Gross'
         payments_query = payments_query.replace(replace_what, replace_with) + \
