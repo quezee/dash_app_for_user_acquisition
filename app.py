@@ -2,13 +2,12 @@ import dash
 import dash_auth
 import dash_core_components as dcc
 import dash_html_components as html
-
 from config import Config
 config = Config()
-
 import logging
 import datetime
 today = datetime.datetime.today().date()
+
 
 app = dash.Dash(__name__)
 auth = dash_auth.BasicAuth(app, config.USERS)
@@ -101,3 +100,5 @@ if __name__ == '__main__':
     logging.info('_________________Started_________________')
 
     app.run_server(debug=True)
+
+

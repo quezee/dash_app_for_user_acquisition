@@ -1,3 +1,4 @@
+APScheduler==3.6.0
 attrs==19.1.0
 certifi==2019.6.16
 chardet==3.0.4
@@ -30,6 +31,7 @@ requests==2.22.0
 retrying==1.3.3
 six==1.12.0
 traitlets==4.3.2
+tzlocal==2.0.0
 ua-parser==0.8.0
 urllib3==1.25.3
 Werkzeug==0.15.5

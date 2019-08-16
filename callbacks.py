@@ -1,17 +1,13 @@
-import dash
-import dash_core_components as dcc
-from dash.dependencies import Input, Output, State
-import dash_html_components as html
+# import dash
+# import dash_core_components as dcc
 # import plotly.graph_objs as go
 # from plotly import tools
+# import dash_html_components as html
+from dash.dependencies import Input, Output, State
 import datetime
-
 from utils import *
 ch = CHHandler(config.DB_HOST, config.DB_PORT)
-
 from app import app
-
-
 
 
 @app.callback(Output('media', 'options'),

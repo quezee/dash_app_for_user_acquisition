@@ -10,10 +10,10 @@ class CHHandler:
     def __init__(self, host, port):
         self.conn = Client(host, port)
 
-    def simple_query(self, query, column_types=False):
+    def simple_query(self, query, with_columns=False):
         logging.debug('____________________QUERY____________________')
-        response = self.conn.execute(query, with_column_types=column_types, settings={'max_execution_time': 3600})
-        if column_types:
+        response = self.conn.execute(query, with_column_types=with_columns, settings={'max_execution_time': 3600})
+        if with_columns:
             data = [dict(zip([col[0] for col in response[1]], row)) for row in response[0]]
             cols = [{'name': col[0], 'id': col[0]} for col in response[1]]
             return data, cols
@@ -31,6 +31,8 @@ def preproc_dt_range(dt_start, dt_end):
 
 def preproc_dt(dt):
     return repr(dt.strftime('%Y-%m-%d 00:00:00'))
+
+
 
 
 class QueryConstructor:
@@ -78,8 +80,18 @@ class QueryConstructor:
         query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
+    def currency_query(self, cur):
+        query = \
+        '\nWITH (\nSELECT avg(Value)' \
+        '\nFROM appsflyer.cbr' \
+        "\nWHERE Currency = '{}' AND Date BETWEEN {} AND {}" \
+        '\n) AS {}' \
+        .format(cur, self.dt_start, self.dt_end, cur)
+        return query
+
     def media_query(self, media_source):
         table = config.MediaToTable[media_source]
+        #
         media_col = '{} as MediaSource, '.format(repr(media_source)) if 'MediaSource' in self.groupby else ''
         query = \
         '\nSELECT {}, {}SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed' \
@@ -90,8 +102,13 @@ class QueryConstructor:
 
         if self.cohort != 'None':
             query += ' AND Date < {}'.format(self.dt_border)
+        if media_source == 'googleadwords_int':
+            currency_query = self.currency_query('USD')
+            query = currency_query + query
+            query = query.replace('SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed',
+                                  '(SUM(CostValue) / USD) as MediaCost, (SUM(CostValueTax) / USD) as MediaCostTaxed')
 
-        query += '\nGROUP BY {}'.format(self.groupby)
+        query += 'GROUP BY {}'.format(self.groupby)
         return query
 
     def combined_installs_query(self):
@@ -131,16 +148,16 @@ class QueryConstructor:
             overlap_payments = self.overlap_payments_query()
             query += '\n AND NOT (af_receipt_id IN ({}\n) AND IsPrimaryAttribution = 1)\n' \
                         .format(self.indent(overlap_payments))
-        if self.dup_payments == 'Remove':
-            query += '\nLIMIT 1 BY af_receipt_id'
         if self.whales == 'Exclude':
             whales = self.whale_query(query)
             query += ' AND AppsFlyerID NOT IN ({}\n)'.format(self.indent(whales))
+        if self.dup_payments == 'Remove':
+            query += '\nLIMIT 1 BY af_receipt_id'
 
         agg_query = \
         '\nSELECT {}, uniqExact(AppsFlyerID) as Payers, SUM(EventRevenueUSD) as Gross,' \
         '\nSUM(EventRevenueUSDTax) as GrossClean' \
-        '\nFROM ({}\n)' \
+        '\nFROM ({})' \
         '\nGROUP BY {}' \
         .format(self.groupby, self.indent(query), self.groupby)
 
@@ -167,10 +184,7 @@ class QueryConstructor:
 
     def whale_query(self, payments_query):
         threshold = config.WHALE_THRESHOLDS[self.cohort]
-        replace_what = \
-        '\n{}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id' \
-        '\nFROM appsflyer.payments' \
-        .format(self.groupby)
+        replace_what = '{}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id'.format(self.groupby)
         replace_with = 'AppsFlyerID, SUM(EventRevenueUSD) as Gross'
         payments_query = payments_query.replace(replace_what, replace_with) + \
         '\nGROUP BY AppsFlyerID' \
