@@ -15,6 +15,8 @@ auth = dash_auth.BasicAuth(app, config.USERS)
 from tabs import TABS
 
 LABEL_SIZE = 18
+MARGIN_TOP = 15
+MARGIN_BOT = 15
 
 app.layout = html.Div([
     html.Div([
@@ -31,7 +33,7 @@ app.layout = html.Div([
         html.Br(),
         dcc.Dropdown(id='app_name',
                      options=[{'label': name, 'value': name} for name in config.APP_NAMES])
-    ], style={'marginTop': 20, 'width': '300px', 'display': 'inline-block'}),
+    ], style={'marginTop': MARGIN_TOP, 'width': '300px', 'display': 'inline-block'}),
 
     html.Div([
         html.Label('Platform', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
@@ -48,16 +50,24 @@ app.layout = html.Div([
 
     html.Br(),
     html.Div([
+        html.Label('Additional filters', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
+        html.Br(),
+        dcc.Input(id='sql_filter', type='text', value=None, size='110',
+                  placeholder="Type SQL filter (ex.: CountryCode IN ('US', 'CA') AND Campaign IN ...)")
+    ], style={'width': '600px', 'display': 'inline-block', 'marginTop': MARGIN_TOP, 'marginBottom': MARGIN_BOT}),
+
+    html.Br(),
+    html.Div([
         html.Label('Days cohort', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
         dcc.RadioItems(id='cohort', value='7', style={'font-size': 17},
                        options=[{'label': coh, 'value': coh} for coh in config.COHORTS])
-    ], style={'width': '300px', 'display': 'inline-block', 'marginTop': 20, 'marginBottom': 20}),
+    ], style={'width': '300px', 'display': 'inline-block', 'marginTop': MARGIN_TOP, 'marginBottom': MARGIN_BOT}),
 
     html.Div([
         html.Label('Campaign Type', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
-        dcc.RadioItems(id='camptype', value='0', style={'font-size': 17},
+        dcc.RadioItems(id='camptype', value='All', style={'font-size': 17},
                        options=[{'label': 'All', 'value': 'All'},
                                 {'label': 'UA', 'value': '0'},
                                 {'label': 'RTG', 'value': '1'}])
@@ -71,20 +81,29 @@ app.layout = html.Div([
                                 {'label': 'Include', 'value': 'Include'}])
     ], style={'width': '300px', 'display': 'inline-block'}),
 
+    html.Br(),
     html.Div([
         html.Label('Whales', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
         dcc.RadioItems(id='whales', value='Include', style={'font-size': 17},
                        options=[{'label': 'Exclude', 'value': 'Exclude'},
                                 {'label': 'Include', 'value': 'Include'}])
-    ], style={'width': '300px', 'display': 'inline-block'}),
+    ], style={'width': '300px', 'display': 'inline-block', 'marginTop': MARGIN_TOP, 'marginBottom': MARGIN_BOT}),
 
     html.Div([
         html.Label('Duplicate payments', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
-        dcc.RadioItems(id='dup_payments', value='Leave', style={'font-size': 17},
+        dcc.RadioItems(id='dup_payments', value='Remove', style={'font-size': 17},
                        options=[{'label': 'Leave', 'value': 'Leave'},
                                 {'label': 'Remove', 'value': 'Remove'}])
+    ], style={'width': '300px', 'display': 'inline-block'}),
+
+    html.Div([
+        html.Label('Show Ad metrics', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
+        html.Br(),
+        dcc.RadioItems(id='ad_metrics', value=0, style={'font-size': 17},
+                       options=[{'label': 'True', 'value': 1},
+                                {'label': 'False', 'value': 0}])
     ], style={'width': '300px', 'display': 'inline-block'}),
 
 
@@ -99,6 +118,6 @@ if __name__ == '__main__':
     logging.basicConfig(filename=config.LOGPATH, level=logging.DEBUG)
     logging.info('_________________Started_________________')
 
-    app.run_server(debug=True)
+    app.run_server(debug=True, host="192.168.2.181")
 
 

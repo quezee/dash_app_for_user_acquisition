@@ -36,18 +36,30 @@ def preproc_dt(dt):
 
 
 class QueryConstructor:
-    def __init__(self, dt_start, dt_end, app_name, plat, media,
-                 cohort, camptype, rtg, whales, dup_payments, groupby):
+    def __init__(self, dt_start, dt_end, app_name, plat, media, sql_filter, cohort,
+                 camptype, rtg, whales, dup_payments, groupby, ad_metrics, ts_break=None):
         self.dt_start, self.dt_end = preproc_dt_range(dt_start, dt_end)
         self.app_name = app_name
         self.plat = plat
         self.media = media
+        self.sql_filter = sql_filter
         self.cohort = cohort
         self.camptype = camptype
         self.rtg = rtg
         self.whales = whales
         self.dup_payments = dup_payments
+
         self.groupby = groupby
+        if ts_break:
+            self.groupby += 'toStartOf' + ts_break
+
+        self.ad_metrics = ad_metrics
+        self.ad_cols = ''
+        if not self.media:
+            self.ad_cols = set.intersection(*[set(col_list) for col_list in config.AD_METRICS.values()])
+        elif self.media in config.AD_METRICS:
+            self.ad_cols = config.AD_METRICS[self.media]
+
         if cohort != 'None':
             today = datetime.datetime.utcnow().date()
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
@@ -59,6 +71,8 @@ class QueryConstructor:
             self.filt_global += ' AND Platform = {}'.format(repr(plat))
         if camptype != 'All':
             self.filt_global += ' AND IsRetCampaign = {}'.format(camptype)
+        if sql_filter:
+            self.filt_global += ' AND ' + sql_filter
 
     @staticmethod
     def indent(query):
@@ -66,10 +80,12 @@ class QueryConstructor:
 
     def installs_query(self):
         query = \
-        '\nSELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed' \
+        '\nSELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed{}' \
         '\nFROM appsflyer.installs' \
         "\nWHERE EventName = 'install' AND AttributedTouchTime BETWEEN {} AND {}\n" \
-        .format(self.groupby, self.dt_start, self.dt_end) \
+        .format(self.groupby,
+                ', ' + ', '.join(['0 as {}'.format(col) for col in self.ad_cols]) if self.ad_metrics else '',
+                self.dt_start, self.dt_end) \
         + self.filt_global
 
         if self.media:
@@ -91,13 +107,14 @@ class QueryConstructor:
 
     def media_query(self, media_source):
         table = config.MediaToTable[media_source]
-        #
-        media_col = '{} as MediaSource, '.format(repr(media_source)) if 'MediaSource' in self.groupby else ''
         query = \
-        '\nSELECT {}, {}SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed' \
+        '\nSELECT {}, SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed{}' \
         '\nFROM {}' \
         '\nWHERE Date BETWEEN {} AND {}\n' \
-        .format(self.groupby, media_col, table, self.dt_start, self.dt_end) \
+        .format(self.groupby.replace('MediaSource', '{} as MediaSource'.format(repr(media_source))),
+                ', ' + ', '.join(['SUM({}) as Media{}'.format(col, col) for col in config.AD_METRICS[media_source]])
+                if self.ad_metrics else '',
+                table, self.dt_start, self.dt_end) \
         + self.filt_global
 
         if self.cohort != 'None':
@@ -108,7 +125,7 @@ class QueryConstructor:
             query = query.replace('SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed',
                                   '(SUM(CostValue) / USD) as MediaCost, (SUM(CostValueTax) / USD) as MediaCostTaxed')
 
-        query += 'GROUP BY {}'.format(self.groupby)
+        query += '\nGROUP BY {}'.format(self.groupby)
         return query
 
     def combined_installs_query(self):
@@ -116,8 +133,10 @@ class QueryConstructor:
 
         if (not self.media) | (self.media in config.SPECIAL_MEDIAS):
             select = \
-            '{}, Installs, (Cost + MediaCost) as Cost, (CostTaxed + MediaCostTaxed) as CostTaxed' \
-            .format(self.groupby)
+            '{}, Installs, (Cost + MediaCost) as Cost, (CostTaxed + MediaCostTaxed) as CostTaxed{}' \
+            .format(self.groupby,
+                    ', ' + ', '.join(['({} + Media{}) as {}'.format(col, col, col) for col in self.ad_cols])
+                    if self.ad_metrics else '')
 
             if not self.media:
                 for media_source in config.SPECIAL_MEDIAS:
