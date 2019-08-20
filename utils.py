@@ -32,7 +32,10 @@ def preproc_dt_range(dt_start, dt_end):
 def preproc_dt(dt):
     return repr(dt.strftime('%Y-%m-%d 00:00:00'))
 
-
+def preproc_groupby(groupby):
+    if isinstance(groupby, list):
+        groupby = ', '.join(groupby)
+    return groupby
 
 
 class QueryConstructor:
@@ -50,8 +53,12 @@ class QueryConstructor:
         self.dup_payments = dup_payments
 
         self.groupby = groupby
+        self.groupby_agg = self.groupby
+        self.ts_break = ts_break
         if ts_break:
-            self.groupby += 'toStartOf' + ts_break
+            ts_agg = 'toStartOf{}(AttributedTouchTime) as {}'.format(ts_break, ts_break)
+            self.groupby = ', '.join([ts_break, groupby]) if groupby else ts_break
+            self.groupby_agg = ', '.join([ts_agg, groupby]) if groupby else ts_agg
 
         self.ad_metrics = ad_metrics
         self.ad_cols = ''
@@ -64,7 +71,7 @@ class QueryConstructor:
             today = datetime.datetime.utcnow().date()
             self.dt_border = preproc_dt(today - datetime.timedelta(days=int(cohort)))
 
-        self.filt_global = ''
+        self.filt_global = 'AttributedTouchTime BETWEEN {} AND {}'.format(self.dt_start, self.dt_end)
         if app_name:
             self.filt_global += ' AND AppName = {}'.format(repr(app_name))
         if plat:
@@ -79,13 +86,12 @@ class QueryConstructor:
         return textwrap.indent(query, '    ')
 
     def installs_query(self):
+        ad_cols = ', ' + ', '.join(['0 as {}'.format(col) for col in self.ad_cols]) if self.ad_metrics else ''
         query = \
         '\nSELECT {}, uniqExact(AppsFlyerID) as Installs, SUM(CostValue) as Cost, SUM(CostValueTax) as CostTaxed{}' \
         '\nFROM appsflyer.installs' \
-        "\nWHERE EventName = 'install' AND AttributedTouchTime BETWEEN {} AND {}\n" \
-        .format(self.groupby,
-                ', ' + ', '.join(['0 as {}'.format(col) for col in self.ad_cols]) if self.ad_metrics else '',
-                self.dt_start, self.dt_end) \
+        "\nWHERE EventName = 'install' AND " \
+        .format(self.groupby_agg, ad_cols) \
         + self.filt_global
 
         if self.media:
@@ -107,15 +113,17 @@ class QueryConstructor:
 
     def media_query(self, media_source):
         table = config.MediaToTable[media_source]
+        ad_cols = ', ' + ', '.join(['SUM({}) as Media{}'.format(col, col) \
+                                    for col in config.AD_METRICS[media_source]]) if self.ad_metrics else ''
         query = \
         '\nSELECT {}, SUM(CostValue) as MediaCost, SUM(CostValueTax) as MediaCostTaxed{}' \
         '\nFROM {}' \
-        '\nWHERE Date BETWEEN {} AND {}\n' \
-        .format(self.groupby.replace('MediaSource', '{} as MediaSource'.format(repr(media_source))),
-                ', ' + ', '.join(['SUM({}) as Media{}'.format(col, col) for col in config.AD_METRICS[media_source]])
-                if self.ad_metrics else '',
-                table, self.dt_start, self.dt_end) \
+        '\nWHERE ' \
+        .format(self.groupby_agg.replace('MediaSource', "'{}' as MediaSource".format(media_source)),
+                ad_cols, table) \
         + self.filt_global
+
+        query = query.replace('AttributedTouchTime', 'Date')
 
         if self.cohort != 'None':
             query += ' AND Date < {}'.format(self.dt_border)
@@ -132,11 +140,11 @@ class QueryConstructor:
         installs_query = self.installs_query()
 
         if (not self.media) | (self.media in config.SPECIAL_MEDIAS):
+            ad_cols = ', ' + ', '.join(['({} + Media{}) as {}'.format(col, col, col) \
+                                        for col in self.ad_cols]) if self.ad_metrics else ''
             select = \
             '{}, Installs, (Cost + MediaCost) as Cost, (CostTaxed + MediaCostTaxed) as CostTaxed{}' \
-            .format(self.groupby,
-                    ', ' + ', '.join(['({} + Media{}) as {}'.format(col, col, col) for col in self.ad_cols])
-                    if self.ad_metrics else '')
+            .format(self.groupby, ad_cols)
 
             if not self.media:
                 for media_source in config.SPECIAL_MEDIAS:
@@ -153,8 +161,7 @@ class QueryConstructor:
         query = \
         '\nSELECT {}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id' \
         '\nFROM appsflyer.payments' \
-        '\nWHERE AttributedTouchTime BETWEEN {} AND {}\n' \
-        .format(self.groupby, self.dt_start, self.dt_end) \
+        '\nWHERE '.format(self.groupby_agg) \
         + self.filt_global
 
         if self.media:
@@ -194,8 +201,6 @@ class QueryConstructor:
             query += ' AND AppName = {}'.format(repr(self.app_name))
         if self.plat:
             query += ' AND Platform = {}'.format(repr(self.plat))
-        if self.media:
-            query += ' AND MediaSource = {}'.format(repr(self.media))
         if self.cohort != 'None':
             query += ' AND InstallTime < {} AND DaysDiff <= {}'.format(self.dt_border, self.cohort)
 
@@ -217,34 +222,39 @@ class QueryConstructor:
 
         return query
 
-    def join(self, query1, query2, select='*', join_type='ALL FULL JOIN'):
+    def join(self, query1, query2, select='*', join_type='ALL FULL JOIN', order_col=None):
         query = \
         '\nSELECT {}' \
         '\nFROM ({})' \
         '\n{} ({})' \
-        '\nUSING {}' \
-        .format(select, self.indent(query1), join_type, self.indent(query2), self.groupby)
+        '\nUSING {}{}' \
+        .format(select, self.indent(query1), join_type, self.indent(query2), self.groupby,
+                '\nORDER BY {}'.format(order_col) if order_col else '')
         return query
 
 
 
 
-# if __name__ == '__main__':
-#
-#     start_date = '2019-06-01 00:00:00'
-#     end_date = '2019-07-01 23:59:59'
-#     app = "Forge of Glory"
-#     plat = 'ios'
-#
-#     query = '''
-#     SELECT DISTINCT MediaSource FROM appsflyer.installs
-#     WHERE AttributedTouchTime BETWEEN {} AND {}
-#     AND AppName = {} AND Platform = {}
-#     '''.format(repr(start_date), repr(end_date), repr(app), repr(plat))
-#
-#     from config import Config
-#     config = Config()
-#     ch = CHHandler(config.DB_HOST, config.DB_PORT)
-#
-#     s = ch.simple_query(query, True)
-#     # p = ch.pandas_query(query)
+if __name__ == '__main__':
+
+    start_date = '2019-06-01 00:00:00'
+    end_date = '2019-07-01 23:59:59'
+    app = "Last Day on Earth"
+    plat = 'ios'
+
+    query = '''
+    SELECT toStartOfDay(AttributedTouchTime) as Day, MediaSource, count()
+    FROM appsflyer.installs
+    WHERE AttributedTouchTime BETWEEN {} AND {}
+    AND AppName = {} AND Platform = {}
+    GROUP BY Day, MediaSource
+    ORDER BY Day
+    '''.format(repr(start_date), repr(end_date), repr(app), repr(plat))
+
+    from config import Config
+    config = Config()
+    ch = CHHandler(config.DB_HOST, config.DB_PORT)
+
+    data, cols = ch.simple_query(query, True)
+    xlabels = [row['Day'] for row in data]
+    # for i in xlabels: print(i)

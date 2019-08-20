@@ -8,12 +8,14 @@ import dash_table
 
 from config import Config
 config = Config()
+
 TABS = [
     dcc.Tab(label='Main metrics', children=[
         html.Div([
             html.Label('Group by', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
-            dcc.Dropdown(id='main_groupby', multi=True)
+            dcc.Dropdown(id='main_groupby', multi=True,
+                         placeholder='Select breakdown (options depend on chosen Media Source)')
         ], style={'width': '500px', 'marginTop': 20}),
 
         html.Button(id='main_submit', n_clicks=0, children='Submit'),
@@ -24,15 +26,15 @@ TABS = [
                                            'overflow: inherit; text-overflow: inherit;'}])
     ]),
 
-    dcc.Tab(label='Dynamics', children=[
+    dcc.Tab(label='Dynamics (in construction)', children=[
         html.Div([
             html.Label('Time series breakdown', style={'font-weight': 'bold', 'font-size': 17}),
-            dcc.RadioItems(id='dynamics_ts_break', value='Day', style={'font-size': 17},
-                           options=[{'label': opt, 'value': opt} for opt in config.GROUPERS['dynamics_dt']]),
+            dcc.RadioItems(id='dynamics_ts_break', style={'font-size': 17},
+                           options=[{'label': opt, 'value': opt} for opt in config.GROUPERS['dynamics_ts']]),
             html.Br(),
             html.Label('Group by', style={'font-weight': 'bold', 'font-size': 17}),
             html.Br(),
-            dcc.Dropdown(id='dynamics_groupby', multi=True,
+            dcc.Dropdown(id='dynamics_groupby', multi=False, placeholder='(no breakdown is also allowed)',
                          options=[{'label': opt, 'value': opt} for opt in config.GROUPERS['dynamics_graph']])
         ], style={'width': '500px', 'marginTop': 20}),
 
@@ -40,4 +42,3 @@ TABS = [
         dcc.Graph(id='dynamics_graph')
     ])
 ]
-

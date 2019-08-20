@@ -22,10 +22,13 @@ jsonschema==3.0.1
 jupyter-core==4.5.0
 MarkupSafe==1.1.1
 nbformat==4.4.0
+numpy==1.17.0
+pandas==0.25.0
 pkg-resources==0.0.0
 plotly==4.0.0
 pyrsistent==0.15.2
-pytz==2019.1
+python-dateutil==2.8.0
+pytz==2019.2
 PyYAML==5.1.1
 requests==2.22.0
 retrying==1.3.3
