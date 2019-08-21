@@ -107,7 +107,7 @@ app.layout = html.Div([
     ], style={'width': '300px', 'display': 'inline-block'}),
 
 
-    dcc.Tabs(id="tabs", value='Main', children=TABS),
+    dcc.Tabs(id="tabs", children=TABS, style={'font-weight': 'bold'}),
 ])
 
 

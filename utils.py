@@ -5,6 +5,11 @@ import textwrap
 from config import Config
 config = Config()
 
+CSS_COLORS = ['darkgray', 'darkorange', 'chocolate', 'deeppink', 'green', 'black', 'purple',
+              'violet', 'maroon', 'mediumaquamarine', 'mediumblue', 'mediumorchid', 'mediumpurple',
+              'mediumseagreen', 'mediumslateblue', 'mediumspringgreen', 'mediumturquoise', 'mediumvioletred',
+              'brown', 'midnightblue', 'mintcream', 'mistyrose', 'moccasin', 'lime', 'blue']
+
 
 class CHHandler:
     def __init__(self, host, port):
@@ -208,7 +213,7 @@ class QueryConstructor:
 
     def whale_query(self, payments_query):
         threshold = config.WHALE_THRESHOLDS[self.cohort]
-        replace_what = '{}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id'.format(self.groupby)
+        replace_what = '{}, AppsFlyerID, EventRevenueUSD, EventRevenueUSDTax, af_receipt_id'.format(self.groupby_agg)
         replace_with = 'AppsFlyerID, SUM(EventRevenueUSD) as Gross'
         payments_query = payments_query.replace(replace_what, replace_with) + \
         '\nGROUP BY AppsFlyerID' \

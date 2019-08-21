@@ -92,18 +92,18 @@ def update_main_table(n_clicks, dt_start, dt_end, app_name, plat, media, sql_fil
                State('dynamics_groupby', 'value'), State('ad_metrics', 'value'), State('dynamics_ts_break', 'value')])
 def update_dynamics(n_clicks, dt_start, dt_end, app_name, plat, media, sql_filter, cohort,
                       camptype, rtg, whales, dup_payments, groupby, ad_metrics, ts_break):
+    NCOLS = 3
 
     if ad_metrics:
         metrics = ['Installs', 'Cost', 'CPI', 'Gross', 'PayingShare', 'ARPU',
                    'ROI', 'IPM', 'CPM', 'IR', 'CTR', 'ViewImp']
-        nrows = 4
+        NROWS = 4
     else:
         metrics = ['Installs', 'Cost', 'CPI', 'Gross', 'PayingShare', 'ARPU', 'ROI']
-        nrows = 3
+        NROWS = 3
 
-    fig = make_subplots(rows=nrows, cols=3, specs=[[{}, {}, {}]] * nrows,
-                        subplot_titles=['<b>{}</b>'.format(metric) for metric in metrics],
-                        horizontal_spacing=0.04, vertical_spacing=0.1)
+    fig = make_subplots(rows=NROWS, cols=NCOLS, horizontal_spacing=0.04, vertical_spacing=0.1,
+                        subplot_titles=['<b>{}</b>'.format(metric) for metric in metrics])
     if not ts_break:
         return fig
 
@@ -139,26 +139,29 @@ def update_dynamics(n_clicks, dt_start, dt_end, app_name, plat, media, sql_filte
     if groupby:
         data_df = data_df.set_index([ts_break, groupby]).unstack()
         for i, metric in enumerate(metrics):
-            row_pos = (i // 3) + 1
-            col_pos = (i % 3) + 1
-            for level in data_df.columns.levels[1]:
+            row_pos = (i // NCOLS) + 1
+            col_pos = (i % NCOLS) + 1
+            for j, level in enumerate(data_df.columns.levels[1]):
                 df = data_df[metric, level]
-                trace = go.Scatter(x=df.index, y=df, mode='lines+markers', name=level)
+                color = CSS_COLORS[j % len(CSS_COLORS)]
+                trace = go.Scatter(x=df.index, y=df, mode='lines+markers', name=level,
+                                   marker={'color': color}, line={'color': color},
+                                   showlegend=True if i == 0 else False)
                 fig.append_trace(trace, row_pos, col_pos)
-        fig['layout'].update({'showlegend': True})
 
     else:
         data_df = data_df.set_index(ts_break)
         for i, metric in enumerate(metrics):
-            row_pos = (i // 3) + 1
-            col_pos = (i % 3) + 1
+            row_pos = (i // NCOLS) + 1
+            col_pos = (i % NCOLS) + 1
             df = data_df[metric]
-            trace = go.Scatter(x=df.index, y=df, mode='lines+markers', name='')
+            trace = go.Scatter(x=df.index, y=df, mode='lines+markers', name='',
+                               marker={'color': 'darkgray'}, line={'color': 'darkgray'})
             fig.append_trace(trace, row_pos, col_pos)
         fig['layout'].update({'showlegend': False})
 
-    fig['layout'].update({'height': 850})
-    for n in range(1, 8):
+    fig['layout'].update({'height': 850, 'legend': {'x': .1, 'y': 1.1, 'orientation': 'h'}})
+    for n in range(1, NCOLS * NROWS):
         fig['layout']['xaxis{}'.format(n)].update(tickfont={'size': 11}, showticklabels=True)
         fig['layout']['yaxis{}'.format(n)].update(rangemode='tozero')
 
