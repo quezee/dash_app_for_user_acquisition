@@ -25,11 +25,6 @@ class CHHandler:
         data = [{'label': row[0], 'value': row[0]} for row in response]
         return data
 
-    # def pandas_query(self, query):
-    #     response = self.conn.execute(query, with_column_types=True, settings={'max_execution_time': 3600})
-    #     data = response [0]
-    #     cols = [row[0] for row in response [1]]
-    #     return pd.DataFrame(data, columns=cols)
 
 def preproc_dt_range(dt_start, dt_end):
     return repr(dt_start + ' 00:00:00'), repr(dt_end + ' 23:59:59')
