@@ -1,35 +1,31 @@
-Web-App для визулизации и анализа данных в фреймворке [Dash](dash.plot.ly).
+BI web-app for User Acquisition managers. Based on [Dash](dash.plot.ly) framework.<br>
+Was built on top of Clickhouse database containing installs and payments data from [AppsFlyer](appsflyer.com) and some other data sources.
 
-## Содержание
-   * [Как оно работает](#как-оно-работает)
-   * [Конфигурирование](#конфигурирование)
+## Contents
+   * [How does it work](#how-does-it-work)
+   * [Configuration](#configuration)
 
-## Как оно работает
-В [app.py](app.py) вводится `app.layout` - HTML теги на странице, после чего импортируются хэндлеры из [callbacks.py](callbacks.py).<br>
-Делается это именно в таком порядке, потому что [callbacks.py](callbacks.py) внутри импортирует объект фласкового приложения `app` (который к этому моменту должен иметь заполненный аттрибут `layout` ).
+## How does it work
+Page layout is served dynamically on every page request through `app.layout` ([app.py](app.py)).<br>
+Callbacks defined in [callbacks.py](callbacks.py) provide interactive functionality like constructing SQL query and receiving data up on pressing `Submit` button.<br>
+Front-end consists of control panel to specify which data / metrics you want to analyse and 2 output sections: `Main metrics`, showing query results in an interactive sheet and `Dynamics`, doing the same, but through line plots in time.
 
-Хэндлеры в [callbacks.py](callbacks.py) реагируют на взаимодействие юзера со страницей. Их цель - парсить выбранные юзером параметры, упаковывать их в SQL запрос с помощью `QueryConstructor` ([utils.py](utils.py)), запрашивать данные и отображать их на странице.
-
-## Конфигурирование
-Файл для инициализации конфига довольно короткий и простой, поэтому просто просмотрев его (вместе с юзером), можно понять что и как конфигурируется.
+## Configuration
+Configuration constants should be defined in `environments.json` file, located in root.
 
 **USERS**<br>
-Пары логин/пароль для авторизации.
+Login/Password pairs for authorisation.
 
 **APP_NAMES, PLATFORMS, COHORTS**<br>
-Опции, доступные для выбора на странице в соответствующих дропдаунах/переключателях.
+Options for corresponding dropdowns/tumblers which should be available for querying.
 
 **WHALE_THRESHOLDS**<br>
-Границы определения китов по когортам. Определялись как 99% (или чуть больше) квантили по всем проектам.
+Upper thresholds for payments amount to enable whale filtering functionality.
 
 **SPECIAL_MEDIAS, MediaToTable, AD_METRICS**<br>
-В `SPECIAL_MEDIAS` вводятся те источники данных, затраты по которым наш ETL подтягивает в БД в выделенные таблицы.<br>
-В `MediaToTable` указываем их соответствующие таблицы в БД.<br>
-В `AD_METRICS` указываем прочие рекламные метрики, которые содержатся в таблицах каждого источника.
+`SPECIAL_MEDIAS` are media sources, data for which should be querried from dedicated tables (not AppsFlyer ones), since they don't provide AppsFlyer with costs.<br>
+`MediaToTable` is a mapping from such medias to their corresponding table names in DB.<br>
+`AD_METRICS` is a mapping for other metrics like Clicks/Impressions available for each of special media.
 
 **GROUPERS**<br>
-Этот словарь используется для подтягивания доступных разбивок данных (элемент `Group by` на странице).<br>
-Принцип действия можно посмотреть в хэндлере `set_groupby_options` в [callbacks.py](callbacks.py).<br>
-**Почему нужно ограничивать список доступных разбивок в зависимости от выбранного медиа (элемент `Media Source` на странице)?**<br>
-Все разбивки, которые юзер только может выбрать, есть только в таблицах Аппсфлаера. Таблицы для особых медиа (`SPECIAL_MEDIAS`) содержат лишь малое подмножество колонок Аппсфлаера. Поэтому нам нужно ограничивать набор доступных разбивок, чтобы в эти особые таблицы не полетел запрос на те колонки, которых там нет.<br>
-В `GROUPERS` также содержится список разбивок `dynamics_graph` для отображения разбивок в секции Dynamics на странице и `dynamics_ts` для доступных разбивок по временному признаку в это же секции.
+This dictionary is used to map available data breakdowns (`Group by` component in front-end) through `set_groupby_options` callback depending on chosen `Media Source` in dropdown.<br>

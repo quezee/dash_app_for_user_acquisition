@@ -121,4 +121,4 @@ if __name__ == '__main__':
     logging.basicConfig(filename=config.LOGPATH, level=logging.DEBUG)
     logging.info('_________________Started_________________')
 
-    app.run_server(debug=True, host="192.168.2.181")
+    app.run_server(debug=True, host=config.HOST)
