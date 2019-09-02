@@ -1,5 +1,5 @@
-BI web-app for User Acquisition managers. Based on [Dash](dash.plot.ly) framework.<br>
-Was built on top of Clickhouse database containing installs and payments data from [AppsFlyer](appsflyer.com) and some other data sources.
+BI web-app for User Acquisition managers. Based on [Dash](https://dash.plot.ly/) framework.<br>
+Was built on top of Clickhouse database containing installs and payments data from [AppsFlyer](https://www.appsflyer.com/) and some other data sources.
 
 ## Contents
    * [How does it work](#how-does-it-work)
