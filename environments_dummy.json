@@ -1,0 +1,41 @@
+{
+  "LOGPATH": "",
+  "HOST": "",
+  "DB_HOST": "",
+  "DB_PORT": ,
+  "USERS": [
+    ["", ""]
+  ],
+  "APP_NAMES": [
+    "",
+  ],
+  "PLATFORMS": [
+    "ios",
+    "android"
+  ],
+  "COHORTS": ["3", "7", "14", "28", "60", "180", "None"],
+  "WHALE_THRESHOLDS": {
+    "3": 150, "7": 200, "14": 250, "28": 250,
+    "60": 250, "180": 250, "None": 150
+  },
+  "SPECIAL_MEDIAS": ["Facebook Ads", "applovin_int", "googleadwords_int"],
+  "MediaToTable": {
+    "Facebook Ads": "",
+    "applovin_int": "",
+    "googleadwords_int": ""
+  },
+  "GROUPERS": {
+    "All": ["AppName", "Platform", "MediaSource", "Campaign", "Adset", "Channel", "Ad", "CountryCode", "SiteID"],
+    "Intersection": ["AppName", "Platform", "MediaSource", "Campaign"],
+    "Facebook Ads": ["AppName", "Platform", "MediaSource", "Campaign", "Adset", "Ad", "Channel"],
+    "applovin_int": ["AppName", "Platform", "MediaSource", "Campaign", "Ad", "CountryCode", "SiteID"],
+    "googleadwords_int": ["AppName", "Platform", "MediaSource", "Campaign", "SiteID"],
+    "dynamics_graph": ["AppName", "Platform", "MediaSource", "Campaign", "Channel"],
+    "dynamics_ts": ["Day", "Month"]
+  },
+  "AD_METRICS": {
+    "Facebook Ads": ["Impressions", "Views", "Clicks"],
+    "applovin_int": ["Impressions", "Clicks"],
+    "googleadwords_int": ["Impressions", "Clicks"]
+  }
+}

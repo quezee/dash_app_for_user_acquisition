@@ -11,7 +11,7 @@ Callbacks defined in [callbacks.py](callbacks.py) provide interactive functional
 Front-end consists of control panel to specify which data / metrics you want to analyse and 2 output sections: `Main metrics`, showing query results in an interactive sheet and `Dynamics`, doing the same, but through line plots in time.
 
 ## Configuration
-Configuration constants should be defined in `environments.json` file, located in root.
+Configuration constants should be defined in `environments.json` file, located in root. See example [environments_dummy.json](environments_dummy.json).
 
 **USERS**<br>
 Login/Password pairs for authorisation.

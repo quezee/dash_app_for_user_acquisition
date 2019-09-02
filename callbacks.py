@@ -1,12 +1,11 @@
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from dash.dependencies import Input, Output, State
-import datetime
 from utils import *
-ch = CHHandler(config.DB_HOST, config.DB_PORT)
 from app import app
 import pandas as pd
 
+ch = CHHandler(config.DB_HOST, config.DB_PORT)
 
 @app.callback(Output('media', 'options'),
               [Input('date_range', 'start_date'), Input('date_range', 'end_date'),

@@ -6,8 +6,6 @@ from config import Config
 config = Config()
 import logging
 import datetime
-today = datetime.datetime.today().date()
-
 
 app = dash.Dash(__name__)
 auth = dash_auth.BasicAuth(app, config.USERS)
