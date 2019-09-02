@@ -18,12 +18,14 @@ LABEL_SIZE = 18
 MARGIN_TOP = 15
 MARGIN_BOT = 15
 
-app.layout = html.Div([
+def serve_layout():
+    today = datetime.datetime.today().date()
+    return html.Div([
     html.Div([
         html.Label('Attribution date range', style={'font-weight': 'bold', 'font-size': LABEL_SIZE}),
         html.Br(),
         dcc.DatePickerRange(id='date_range',
-                            start_date=today - datetime.timedelta(30), end_date=today,
+                            start_date=today - datetime.timedelta(7), end_date=today,
                             max_date_allowed=today + datetime.timedelta(1),
                             display_format='MMM DD, Y'),
     ], style={'marginTop': 5}),
@@ -110,6 +112,7 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", children=TABS, style={'font-weight': 'bold'}),
 ])
 
+app.layout = serve_layout
 
 from callbacks import *
 
@@ -119,5 +122,3 @@ if __name__ == '__main__':
     logging.info('_________________Started_________________')
 
     app.run_server(debug=True, host="192.168.2.181")
-
-
